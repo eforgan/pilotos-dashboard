@@ -50,11 +50,17 @@ export default function LoginPage() {
         className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/40 rotate-12 group hover:rotate-0 transition-transform duration-500">
-            <Plane className="w-10 h-10 text-white" />
+          <div className="flex justify-center mb-8">
+            <motion.div 
+              initial={{ scale: 0.8, rotate: -5 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="relative p-4 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800"
+            >
+              <img src="/logo.png" alt="Modena Logo" className="w-32 h-auto object-contain" />
+            </motion.div>
           </div>
-          <h1 className="text-3xl font-black font-outfit uppercase tracking-tighter">Panel de Tripulación</h1>
-          <p className="text-muted-foreground font-semibold">Inicia sesión para gestionar tu perfil y alertas.</p>
+          <h1 className="text-3xl font-black font-outfit uppercase tracking-tighter text-slate-900 dark:text-white">Panel de Tripulación</h1>
+          <p className="text-muted-foreground font-semibold">Gestión integral de la flota y certificaciones.</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800">
