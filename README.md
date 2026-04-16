@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚁 Pilot Management Dashboard - Aviation Excellence
 
-## Getting Started
+Una plataforma integral y premium para la gestión de tripulaciones, seguimiento de certificaciones normativas (ANAC) y archivo digital de legajos técnicos.
 
-First, run the development server:
+## 🚀 Características Principales
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **🔐 Seguridad Avanzada (RBAC)**: Sistema de inicio de sesión seguro con roles diferenciados para Administradores y Pilotos.
+- **📂 Legajo Digital**: Capacidad de subir y gestionar evidencias (PDF/Imágenes) para cada certificación (CMA, Licencias, Cursos).
+- **📅 Calendario de Flota**: Visualización gráfica de todos los vencimientos de la organización mes a mes.
+- **📄 Reportes Profesionales**: Generación de fichas técnicas en PDF de alta fidelidad para auditorías e inspecciones.
+- **🔔 Motor de Alertas**: Sistema de detección anticipada de vencimientos críticos (<30 días) y preventivos (<60 días).
+- **📱 Onboarding Digital**: Generación de invitaciones únicas para el auto-registro de la tripulación.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: Next.js 14+ (App Router)
+- **Lenguaje**: TypeScript
+- **Base de Datos**: SQLite + Prisma ORM
+- **Autenticación**: NextAuth.js v5
+- **Estilos**: Tailwind CSS + Framer Motion (Animaciones)
+- **Iconos**: Lucide React
+- **Reportes**: React-to-Print
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔑 Credenciales Iniciales (Admin)
 
-## Learn More
+Para acceder al panel de administración y gestionar las invitaciones:
 
-To learn more about Next.js, take a look at the following resources:
+- **Usuario**: `admin@empresa.com`
+- **Contraseña**: `adminpassword123`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ⚙️ Configuración y Despliegue
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
 
-## Deploy on Vercel
+2. **Sincronizar Base de Datos**:
+   ```bash
+   npx prisma db push
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Iniciar Servidor de Desarrollo**:
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 📸 Notas de Desarrollo
+Este proyecto ha sido diseñado siguiendo los estándares de **Aviation Excellence**, priorizando la integridad de los datos, la facilidad de uso para el piloto y la disponibilidad de evidencias para autoridades aeronáuticas.
