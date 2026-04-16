@@ -13,7 +13,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not defined in .env");
 }
 const prisma = new PrismaClient({
-  adapter: new PrismaNeon(new Pool({ connectionString }))
+  adapter: new PrismaNeon(new Pool({ connectionString }) as any)
 });
 
 async function main() {
