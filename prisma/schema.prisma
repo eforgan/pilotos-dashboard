@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      String   @default("PILOT") // "ADMIN" or "PILOT"
+  pilotId   String?  @unique
+  pilot     Pilot?   @relation(fields: [pilotId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pilot {
+  id              String   @id @default(cuid())
+  PILOTO          String
+  TELEFONO        String?
+  DNI             String?  @unique
+  FECHA_NAC       String?
+  LICENCIA        String?
+  CMA             String?
+  AW109           String?
+  BO105           String?
+  CONTROL_BIENAL  String?
+  INSP_RECONOC    String?
+  SIMULADOR       String?
+  CTRL_IDONEIDAD  String?
+  CTRL_RUTA       String?
+  CTRL_VLO_INST   String?
+  EXP_RECIENTE    String?
+  ULT_FOLIADO     String?
+  CRM_FFHH        String?
+  MERC_PELIGROSAS String?
+  INTERF_ILICITA  String?
+  MOE             String?
+  SMS             String?
+  CURSO_AERONAVE  String?
+  VACACIONES      String?
+  INSP_IR         String?
+  BASE            String?
+  HUET            String?
+  RO              String?
+  
+  // Auth & Profile Data
+  imageUrl        String?
+  inviteToken     String?  @unique
+  user            User?
+  documents       Document[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  type      String   // e.g., "CMA", "LICENCIA", "SIMULADOR"
+  fileUrl   String
+  fileName  String
+  pilotId   String
+  pilot     Pilot    @relation(fields: [pilotId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
