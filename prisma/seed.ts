@@ -1,14 +1,20 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import Database from "better-sqlite3";
-import * as fs from "fs";
+import "dotenv/config";
 import * as path from "path";
+import * as fs from "fs";
+import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { Pool } from "@neondatabase/serverless";
 
-// Prisma 7 requires a driver adapter for direct SQLite connections
-const adapter = new PrismaBetterSqlite3({
-  url: "file:./dev.db",
+// Load .env explicitly from root
+require('dotenv').config({ path: path.join(process.cwd(), '.env') });
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not defined in .env");
+}
+const prisma = new PrismaClient({
+  adapter: new PrismaNeon(new Pool({ connectionString }))
 });
-const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const jsonPath = path.join(process.cwd(), "src", "data", "pilots.json");
@@ -19,7 +25,7 @@ async function main() {
   }
 
   const pilotsData = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
-  console.log(`Seeding ${pilotsData.length} pilots...`);
+  console.log(`Seeding ${pilotsData.length} pilots to Neon (PostgreSQL)...`);
 
   for (const pilot of pilotsData) {
     await prisma.pilot.upsert({
