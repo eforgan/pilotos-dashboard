@@ -45,10 +45,10 @@ const Sidebar = () => {
       {/* Mobile Header */}
       <div className={`md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-300 ${scrolled ? "glass-panel" : "bg-transparent"}`}>
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-slate-900 rounded-lg">
-            <Plane className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 relative">
+            <img src="/logo.png" alt="Modena Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-bold text-lg tracking-tight">FlyDashboard</span>
+          <span className="font-bold text-lg tracking-tight">Modena Dashboard</span>
         </div>
         <button 
           onClick={() => setIsOpen(true)}
@@ -61,14 +61,9 @@ const Sidebar = () => {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-72 h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-40">
         <div className="p-8">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="p-2.5 bg-slate-900 dark:bg-slate-100 rounded-xl shadow-lg">
-              <Plane className="w-6 h-6 text-white dark:text-slate-900" />
-            </div>
-            <div>
-              <h1 className="font-bold text-xl tracking-tight">FlyDashboard</h1>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Pilot Management</p>
-            </div>
+          <div className="flex flex-col mb-10">
+            <img src="/logo.png" alt="Modena Logo" className="w-48 h-auto object-contain mb-2" />
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold px-1">Pilot Management</p>
           </div>
 
           <nav className="space-y-1.5 font-medium">
