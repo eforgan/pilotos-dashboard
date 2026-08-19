@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Pilot } from "@/lib/types";
-import { getPilots } from "@/lib/utils";
-import { Copy, Check, ExternalLink, ShieldCheck, MessageSquare, Mail, Sparkles, Plus, Trash2, X, Loader2, UserPlus } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Pilot, COMPANY_BASES } from "@/lib/types";
+import { getPilots, filterByAircraft } from "@/lib/utils";
+import { Copy, Check, ExternalLink, ShieldCheck, MessageSquare, Mail, Sparkles, Plus, Trash2, X, Loader2, UserPlus, Users, Send, Filter, Layers, Plane, MapPin } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -14,6 +14,17 @@ export default function AdminInvitesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Group Broadcast State
+  const [groupType, setGroupType] = useState<"all" | "base" | "aircraft">("all");
+  const [selectedBaseGroup, setSelectedBaseGroup] = useState<string>("Base Núñez");
+  const [selectedAircraftGroup, setSelectedAircraftGroup] = useState<string>("BO105");
+  const [broadcastSubject, setBroadcastSubject] = useState("MODENA AIR SERVICE - Comunicado Oficial de Operaciones");
+  const [broadcastMessage, setBroadcastMessage] = useState(
+    "Estimada Tripulación,\n\nSe les solicita revisar y mantener actualizados sus certificados y documentación técnica en la plataforma de Legajo Digital.\n\nPor cualquier consulta, comunicarse con la Dirección de Operaciones.\n\nAtentamente,\nModena Air Service"
+  );
+  const [copiedBcc, setCopiedBcc] = useState(false);
+  const [copiedPhones, setCopiedPhones] = useState(false);
 
   const [newPilot, setNewPilot] = useState({
     PILOTO: "",
@@ -82,6 +93,72 @@ Modena Air Service`;
       digits = "549" + digits;
     }
     return digits;
+  };
+
+  // Filter pilots for group communications
+  const targetPilots = useMemo(() => {
+    if (groupType === "all") return pilots;
+    if (groupType === "base") {
+      return pilots.filter((p) =>
+        (p.BASE || "").toUpperCase().includes(selectedBaseGroup.toUpperCase())
+      );
+    }
+    if (groupType === "aircraft") {
+      return filterByAircraft(pilots, selectedAircraftGroup);
+    }
+    return pilots;
+  }, [pilots, groupType, selectedBaseGroup, selectedAircraftGroup]);
+
+  // Mass Email via Mailto BCC
+  const handleMassEmailBcc = () => {
+    const emails = targetPilots.map((p) => (p.EMAIL || "").trim()).filter(Boolean);
+    if (!emails.length) {
+      alert("No hay correos electrónicos registrados para los pilotos de este grupo.");
+      return;
+    }
+    const bccString = emails.join(",");
+    const subject = encodeURIComponent(broadcastSubject);
+    const body = encodeURIComponent(broadcastMessage);
+
+    if (bccString.length > 1500) {
+      alert(
+        `El grupo contiene ${emails.length} correos. Se ha copiado la lista en CCO (BCC) al portapapeles para pegarla en su cliente de correo (Outlook/Gmail).`
+      );
+      navigator.clipboard.writeText(emails.join("; "));
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    } else {
+      window.location.href = `mailto:?bcc=${bccString}&subject=${subject}&body=${body}`;
+    }
+  };
+
+  // Copy Mass Email List
+  const handleCopyMassEmails = () => {
+    const emails = targetPilots.map((p) => (p.EMAIL || "").trim()).filter(Boolean);
+    if (!emails.length) {
+      alert("No hay correos registrados en este grupo.");
+      return;
+    }
+    navigator.clipboard.writeText(emails.join("; "));
+    setCopiedBcc(true);
+    setTimeout(() => setCopiedBcc(false), 2500);
+  };
+
+  // Copy Mass WhatsApp Phones / Links
+  const handleCopyMassPhones = () => {
+    const items = targetPilots
+      .map((p) => {
+        const phone = formatWhatsAppPhone(p.TELEFONO);
+        return phone ? `${p.PILOTO}: https://wa.me/${phone}` : null;
+      })
+      .filter(Boolean);
+
+    if (!items.length) {
+      alert("No hay números de teléfono registrados para este grupo.");
+      return;
+    }
+    navigator.clipboard.writeText(items.join("\n"));
+    setCopiedPhones(true);
+    setTimeout(() => setCopiedPhones(false), 2500);
   };
 
   const handleOpenEmail = (pilot: Pilot) => {
@@ -200,6 +277,148 @@ Modena Air Service`;
               <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Total Pilotos</p>
               <p className="text-sm font-black text-slate-950 dark:text-white">{pilots.length} Enlaces</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mass Group Broadcast Panel */}
+      <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+          <div>
+            <h2 className="text-xl font-black font-outfit uppercase tracking-tight text-slate-950 dark:text-white flex items-center gap-3">
+              <Users className="w-6 h-6 text-blue-600" />
+              Centro de Envíos Masivos & Comunicados Grupales
+            </h2>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
+              Envíe mensajes o correos masivos filtrando por Todos los Pilotos, Base Operativa o Modelo de Aeronave.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950 px-4 py-2 rounded-2xl border border-blue-200 dark:border-blue-800">
+            <Send className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-black uppercase text-blue-900 dark:text-blue-200">
+              Destinatarios: <strong>{targetPilots.length} Pilotos</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Group Selector Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="block text-xs font-black text-slate-500 uppercase mb-1 flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5" /> 1. Seleccionar Criterio de Grupo
+            </label>
+            <select
+              value={groupType}
+              onChange={(e) => setGroupType(e.target.value as "all" | "base" | "aircraft")}
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-extrabold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+            >
+              <option value="all">👥 Todos los Pilotos ({pilots.length})</option>
+              <option value="base">📍 Por Base Operativa Específica</option>
+              <option value="aircraft">✈️ Por Modelo de Aeronave / Helicóptero</option>
+            </select>
+          </div>
+
+          {groupType === "base" && (
+            <div>
+              <label className="block text-xs font-black text-slate-500 uppercase mb-1 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-blue-600" /> 2. Filtrar por Base
+              </label>
+              <select
+                value={selectedBaseGroup}
+                onChange={(e) => setSelectedBaseGroup(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-extrabold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+              >
+                <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
+                <option value="Base Rosario">Base Rosario (UTV)</option>
+                <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
+                <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
+                <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
+                <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+              </select>
+            </div>
+          )}
+
+          {groupType === "aircraft" && (
+            <div>
+              <label className="block text-xs font-black text-slate-500 uppercase mb-1 flex items-center gap-1.5">
+                <Plane className="w-3.5 h-3.5 text-purple-600" /> 2. Filtrar por Modelo de Aeronave
+              </label>
+              <select
+                value={selectedAircraftGroup}
+                onChange={(e) => setSelectedAircraftGroup(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-extrabold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+              >
+                <option value="BO105">BO105 (Multipropósito)</option>
+                <option value="AW109">AW109 (AgustaWestland)</option>
+                <option value="RH44">RH44 (Robinson R44)</option>
+                <option value="BN2B">BN2B (Britten-Norman Islander)</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Message Content Customization */}
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-xs font-black text-slate-500 uppercase mb-1">Asunto del Comunicado / Email</label>
+            <input
+              type="text"
+              value={broadcastSubject}
+              onChange={(e) => setBroadcastSubject(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-slate-500 uppercase mb-1">Mensaje / Comunicado Oficial</label>
+            <textarea
+              rows={3}
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+            />
+          </div>
+        </div>
+
+        {/* Group Broadcast Action Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase text-slate-400">Pilotos Seleccionados:</span>
+            <span className="text-xs font-black uppercase bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg text-slate-700 dark:text-slate-200">
+              {targetPilots.length} de {pilots.length}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Email Mass Action */}
+            <button
+              onClick={handleMassEmailBcc}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl transition-all shadow-md"
+              title="Abrir cliente de correo enviando CCO masivo al grupo filtrado"
+            >
+              <Mail className="w-4 h-4" />
+              Enviar Email Masivo (CCO)
+            </button>
+
+            {/* Copy Emails */}
+            <button
+              onClick={handleCopyMassEmails}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200"
+            >
+              {copiedBcc ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+              {copiedBcc ? "COPIADOS" : "Copiar Emails del Grupo"}
+            </button>
+
+            {/* Copy WhatsApp Phones */}
+            <button
+              onClick={handleCopyMassPhones}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-md"
+              title="Copiar lista de enlaces y teléfonos formateados para difusión de WhatsApp"
+            >
+              {copiedPhones ? <Check className="w-4 h-4 text-white" /> : <MessageSquare className="w-4 h-4" />}
+              {copiedPhones ? "TELÉFONOS COPIADOS" : "Copiar Difusión WhatsApp"}
+            </button>
           </div>
         </div>
       </div>
