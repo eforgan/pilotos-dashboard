@@ -19,12 +19,34 @@ export default function AdminInvitesPage() {
   const [groupType, setGroupType] = useState<"all" | "base" | "aircraft">("all");
   const [selectedBaseGroup, setSelectedBaseGroup] = useState<string>("Base Núñez");
   const [selectedAircraftGroup, setSelectedAircraftGroup] = useState<string>("BO105");
-  const [broadcastSubject, setBroadcastSubject] = useState("MODENA AIR SERVICE - Comunicado Oficial de Operaciones");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("course_iimc");
+  
+  const [broadcastSubject, setBroadcastSubject] = useState("MODENA AIR SERVICE - Presentación Curso Online Vuelo Instrumental Inadvertido");
   const [broadcastMessage, setBroadcastMessage] = useState(
-    "Estimada Tripulación,\n\nSe les solicita revisar y mantener actualizados sus certificados y documentación técnica en la plataforma de Legajo Digital.\n\nPor cualquier consulta, comunicarse con la Dirección de Operaciones.\n\nAtentamente,\nModena Air Service"
+    "Estimado/a {PILOTO},\n\nme estoy comunicando con vos para presentarte un curso online de Vuelo Instrumental Inadvertido en Helicóptero.\n\nUna vez finalizado me gustaría tener tu opinión.\n\n👉 Acceso al Curso en la Biblioteca Técnica:\nhttps://pilotos-dashboard.vercel.app/manuals\n\nAtentamente,\nDirección de Operaciones\nModena Air Service"
   );
   const [copiedBcc, setCopiedBcc] = useState(false);
   const [copiedPhones, setCopiedPhones] = useState(false);
+
+  const applyTemplate = (templateKey: string) => {
+    setSelectedTemplate(templateKey);
+    if (templateKey === "course_iimc") {
+      setBroadcastSubject("MODENA AIR SERVICE - Presentación Curso Online Vuelo Instrumental Inadvertido");
+      setBroadcastMessage(
+        "Estimado/a {PILOTO},\n\nme estoy comunicando con vos para presentarte un curso online de Vuelo Instrumental Inadvertido en Helicóptero.\n\nUna vez finalizado me gustaría tener tu opinión.\n\n👉 Acceso al Curso en la Biblioteca Técnica:\nhttps://pilotos-dashboard.vercel.app/manuals\n\nAtentamente,\nDirección de Operaciones\nModena Air Service"
+      );
+    } else if (templateKey === "invite_register") {
+      setBroadcastSubject("MODENA AIR SERVICE - Invitación a Activar su Legajo Digital de Piloto");
+      setBroadcastMessage(
+        "Estimado/a {PILOTO},\n\nLe enviamos su enlace de acceso exclusivo para registrarse y verificar su Legajo Digital de Tripulante en el nuevo Panel de Pilotos.\n\nA través del siguiente enlace podrá acceder a su formulario interactivo:\n👉 {LINK}\n\nAtentamente,\nDepartamento de Seguridad y Operaciones\nModena Air Service"
+      );
+    } else if (templateKey === "alert_notice") {
+      setBroadcastSubject("MODENA AIR SERVICE - Aviso de Vencimiento de Certificaciones ANAC");
+      setBroadcastMessage(
+        "Estimado/a {PILOTO},\n\nLe solicitamos revisar el estado de sus certificaciones normativas (CMA, Licencia ANAC, Control Bienal) para mantener la vigencia operacional de la flota.\n\nAtentamente,\nDirección de Operaciones\nModena Air Service"
+      );
+    }
+  };
 
   const [newPilot, setNewPilot] = useState({
     PILOTO: "",
@@ -54,31 +76,6 @@ export default function AdminInvitesPage() {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const getEmailSubject = () => "MODENA AIR SERVICE - Invitación a Activar su Legajo Digital de Piloto";
-
-  const getEmailBody = (pilot: Pilot) => {
-    const url = `${window.location.origin}/register/${pilot.inviteToken || ""}`;
-    return `Estimado/a ${pilot.PILOTO},
-
-Le enviamos su enlace de acceso exclusivo para registrarse y verificar su Legajo Digital de Tripulante en el nuevo Panel de Pilotos.
-
-A través del siguiente enlace podrá acceder a su formulario interactivo para revisar, corregir y actualizar:
-• Datos personales y contacto
-• Foto de perfil (proporción 1:1)
-• Licencia ANAC, CMA y Control Bienal
-• Habilitaciones a aeronaves de la empresa (AW109, BO105, RH44, BN2B)
-• Cursos, Simulador y Evaluaciones
-
-👉 Ingrese a su Formulario de Registro aquí:
-${url}
-
-Por cualquier consulta, comuníquese con la Dirección de Operaciones.
-
-Atentamente,
-Departamento de Seguridad y Operaciones
-Modena Air Service`;
   };
 
   const formatWhatsAppPhone = (phoneStr?: string | null): string => {
@@ -118,11 +115,17 @@ Modena Air Service`;
     }
     const bccString = emails.join(",");
     const subject = encodeURIComponent(broadcastSubject);
-    const body = encodeURIComponent(broadcastMessage);
+    const samplePilot = targetPilots[0];
+    const sampleBody = broadcastMessage
+      .replace(/\{PILOTO\}/g, samplePilot?.PILOTO || "Tripulante")
+      .replace(/\(nombre y apellido\)/gi, samplePilot?.PILOTO || "Tripulante")
+      .replace(/\{LINK\}/g, `${window.location.origin}/register/${samplePilot?.inviteToken || ""}`);
+    
+    const body = encodeURIComponent(sampleBody);
 
     if (bccString.length > 1500) {
       alert(
-        `El grupo contiene ${emails.length} correos. Se ha copiado la lista en CCO (BCC) al portapapeles para pegarla en su cliente de correo (Outlook/Gmail).`
+        `El grupo contiene ${emails.length} correos. Se ha copiado la lista en CCO (BCC) al portapapeles para pegarla en su cliente de correo.`
       );
       navigator.clipboard.writeText(emails.join("; "));
       window.location.href = `mailto:?subject=${subject}&body=${body}`;
@@ -143,12 +146,20 @@ Modena Air Service`;
     setTimeout(() => setCopiedBcc(false), 2500);
   };
 
-  // Copy Mass WhatsApp Phones / Links
+  // Copy Mass WhatsApp Phones / Links with Personalized Text
   const handleCopyMassPhones = () => {
     const items = targetPilots
       .map((p) => {
         const phone = formatWhatsAppPhone(p.TELEFONO);
-        return phone ? `${p.PILOTO}: https://wa.me/${phone}` : null;
+        const registerUrl = `${window.location.origin}/register/${p.inviteToken || ""}`;
+        const formattedMsg = broadcastMessage
+          .replace(/\{PILOTO\}/g, p.PILOTO)
+          .replace(/\(nombre y apellido\)/gi, p.PILOTO)
+          .replace(/\{LINK\}/g, registerUrl);
+
+        return phone 
+          ? `${p.PILOTO} (${phone}): https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(formattedMsg)}` 
+          : null;
       })
       .filter(Boolean);
 
@@ -156,31 +167,40 @@ Modena Air Service`;
       alert("No hay números de teléfono registrados para este grupo.");
       return;
     }
-    navigator.clipboard.writeText(items.join("\n"));
+    navigator.clipboard.writeText(items.join("\n\n"));
     setCopiedPhones(true);
     setTimeout(() => setCopiedPhones(false), 2500);
   };
 
   const handleOpenEmail = (pilot: Pilot) => {
     const email = (pilot.EMAIL || "").trim();
-    const subject = encodeURIComponent(getEmailSubject());
-    const body = encodeURIComponent(getEmailBody(pilot));
+    const registerUrl = `${window.location.origin}/register/${pilot.inviteToken || ""}`;
+    const formattedBody = broadcastMessage
+      .replace(/\{PILOTO\}/g, pilot.PILOTO)
+      .replace(/\(nombre y apellido\)/gi, pilot.PILOTO)
+      .replace(/\{LINK\}/g, registerUrl);
+
+    const subject = encodeURIComponent(broadcastSubject);
+    const body = encodeURIComponent(formattedBody);
 
     if (!email) {
-      alert(`El piloto "${pilot.PILOTO}" no tiene email asignado. Se ha copiado la invitación al portapapeles.`);
-      navigator.clipboard.writeText(getEmailBody(pilot));
+      alert(`El piloto "${pilot.PILOTO}" no tiene email asignado. Se ha copiado el mensaje al portapapeles.`);
+      navigator.clipboard.writeText(formattedBody);
       return;
     }
 
-    // Standard mailto via location assignment to prevent popup blockers
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   const handleOpenWhatsApp = (pilot: Pilot) => {
     const phone = formatWhatsAppPhone(pilot.TELEFONO);
     const registerUrl = `${window.location.origin}/register/${pilot.inviteToken || ""}`;
-    const message = `Hola ${pilot.PILOTO}, te enviamos el enlace para registrarte y actualizar tu Legajo Digital en Modena Air Service:\n\n👉 ${registerUrl}\n\nPor cualquier consulta, comunicate con Operaciones.`;
-    const encoded = encodeURIComponent(message);
+    const formattedMsg = broadcastMessage
+      .replace(/\{PILOTO\}/g, pilot.PILOTO)
+      .replace(/\(nombre y apellido\)/gi, pilot.PILOTO)
+      .replace(/\{LINK\}/g, registerUrl);
+
+    const encoded = encodeURIComponent(formattedMsg);
 
     const waUrl = phone 
       ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}`
@@ -356,6 +376,48 @@ Modena Air Service`;
               </select>
             </div>
           )}
+        </div>
+
+        {/* Template Selector Dropdown */}
+        <div className="mb-6 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <label className="block text-xs font-black uppercase text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-blue-600" /> Cargar Plantilla Predefinida de Mensaje:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => applyTemplate("course_iimc")}
+              className={`p-3 rounded-xl border-2 text-left font-black text-xs transition-all ${
+                selectedTemplate === "course_iimc"
+                  ? "bg-blue-600 border-blue-600 text-white shadow-md"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-blue-500"
+              }`}
+            >
+              🎓 Curso Vuelo Instrumental Inadvertido (IIMC)
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTemplate("invite_register")}
+              className={`p-3 rounded-xl border-2 text-left font-black text-xs transition-all ${
+                selectedTemplate === "invite_register"
+                  ? "bg-blue-600 border-blue-600 text-white shadow-md"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-blue-500"
+              }`}
+            >
+              📑 Invitación a Legajo Digital
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTemplate("alert_notice")}
+              className={`p-3 rounded-xl border-2 text-left font-black text-xs transition-all ${
+                selectedTemplate === "alert_notice"
+                  ? "bg-blue-600 border-blue-600 text-white shadow-md"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-blue-500"
+              }`}
+            >
+              ⚠️ Aviso de Vencimientos ANAC
+            </button>
+          </div>
         </div>
 
         {/* Message Content Customization */}
