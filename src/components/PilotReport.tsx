@@ -2,8 +2,8 @@
 
 import React from "react";
 import { Pilot } from "@/lib/types";
-import { formatDate, getPilotExpirations } from "@/lib/utils";
-import { Shield, Plane, Calendar, User, MapPin, Briefcase } from "lucide-react";
+import { getPilotExpirations } from "@/lib/utils";
+import { Shield, Plane, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -24,6 +24,7 @@ export const PilotReport = React.forwardRef<HTMLDivElement, PilotReportProps>(
             <p className="text-xl font-bold text-blue-600 tracking-widest uppercase">Legajo Técnico de Tripulación</p>
           </div>
           {pilot.imageUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img 
                 src={pilot.imageUrl} 
                 alt="Profile" 

@@ -7,7 +7,7 @@ export async function POST() {
     
     // In test mode, we just return the queue
     // In production, we would call sendNotification(payload) for each
-    const results = await Promise.all(queue.map(p => sendNotification(p)));
+    await Promise.all(queue.map(p => sendNotification(p)));
 
     return NextResponse.json({ 
       success: true, 

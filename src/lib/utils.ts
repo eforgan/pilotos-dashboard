@@ -24,7 +24,7 @@ export async function getPilotById(id: string): Promise<Pilot | undefined> {
     });
     if (!res.ok) return undefined;
     return res.json();
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }
@@ -38,7 +38,7 @@ export async function updatePilot(id: string, data: Partial<Pilot>): Promise<Pil
     });
     if (!res.ok) return null;
     return res.json();
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -75,37 +75,37 @@ export function getAlertConfig(level: AlertLevel) {
   const configs = {
     critical: { 
       label: "Crítico", 
-      color: "#ef4444", 
-      bg: "rgba(239,68,68,0.15)", 
-      border: "rgba(239,68,68,0.3)",
+      color: "#991b1b", 
+      bg: "#fee2e2", 
+      border: "#fca5a5",
       description: "Vencido o vence en < 30 días"
     },
     warning: { 
       label: "Advertencia", 
-      color: "#f59e0b", 
-      bg: "rgba(245,158,11,0.15)", 
-      border: "rgba(245,158,11,0.3)",
+      color: "#92400e", 
+      bg: "#fef3c7", 
+      border: "#fde68a",
       description: "Vence en 30-60 días"
     },
     caution: { 
       label: "Precaución", 
-      color: "#3b82f6", 
-      bg: "rgba(59,130,246,0.15)", 
-      border: "rgba(59,130,246,0.3)",
+      color: "#1e40af", 
+      bg: "#dbeafe", 
+      border: "#bfdbfe",
       description: "Vence en 60-90 días"
     },
     ok: { 
       label: "Vigente", 
-      color: "#10b981", 
-      bg: "rgba(16,185,129,0.15)", 
-      border: "rgba(16,185,129,0.3)",
+      color: "#166534", 
+      bg: "#dcfce7", 
+      border: "#bbf7d0",
       description: "Vigente > 90 días"
     },
     na: { 
       label: "N/A", 
-      color: "#6b7280", 
-      bg: "rgba(107,114,128,0.15)", 
-      border: "rgba(107,114,128,0.3)",
+      color: "#1f2937", 
+      bg: "#f3f4f6", 
+      border: "#e5e7eb",
       description: "No aplica"
     },
   };
@@ -229,7 +229,8 @@ export function searchPilots(pilots: Pilot[], query: string): Pilot[] {
       p.PILOTO.toLowerCase().includes(q) ||
       p.DNI.includes(q) ||
       p.BASE.toLowerCase().includes(q) ||
-      p.LICENCIA.toLowerCase().includes(q)
+      p.LICENCIA.toLowerCase().includes(q) ||
+      (p.EMAIL && p.EMAIL.toLowerCase().includes(q))
   );
 }
 
@@ -241,4 +242,21 @@ export function filterByBase(pilots: Pilot[], base: string): Pilot[] {
 export function filterByStatus(pilots: Pilot[], status: AlertLevel | "all"): Pilot[] {
   if (status === "all") return pilots;
   return pilots.filter((p) => getPilotOverallStatus(p) === status);
+}
+
+export function getPilotAircraft(pilot: Pilot): string[] {
+  const models: string[] = [];
+  const candidates = ["AW109", "BO105", "RH44", "BN2B"] as const;
+  for (const model of candidates) {
+    const val = pilot[model];
+    if (val && val !== "N.A." && val !== "" && val !== "0" && val !== "false") {
+      models.push(model);
+    }
+  }
+  return models;
+}
+
+export function filterByAircraft(pilots: Pilot[], model: string): Pilot[] {
+  if (!model || model === "all") return pilots;
+  return pilots.filter((p) => getPilotAircraft(p).includes(model));
 }

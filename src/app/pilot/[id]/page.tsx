@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getPilotById, updatePilot, formatDate } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import { getPilotById, updatePilot } from "@/lib/utils";
 import { Pilot } from "@/lib/types";
 import { 
-  User, Phone, CreditCard, Calendar, Shield, Plane, 
+  User, Phone, Mail, CreditCard, Calendar, Shield, Plane, 
   MapPin, Save, ArrowLeft, Loader2, CheckCircle, AlertTriangle, FileText
 } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,7 @@ import { useRef } from "react";
 
 export default function PilotProfilePage() {
   const { id } = useParams();
-  const router = useRouter();
+  // const router = useRouter();
   const reportRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
@@ -38,8 +38,8 @@ export default function PilotProfilePage() {
           setPilot(data);
           setFormData(data);
         }
-      } catch (err) {
-        console.error("Load pilot error:", err);
+      } catch {
+        console.error("Load pilot error");
       } finally {
         setLoading(false);
       }
@@ -68,7 +68,7 @@ export default function PilotProfilePage() {
       } else {
         setSaveStatus("error");
       }
-    } catch (err) {
+    } catch {
       setSaveStatus("error");
     } finally {
       setSaving(false);
@@ -101,20 +101,13 @@ export default function PilotProfilePage() {
         VOLVER AL PANEL
       </Link>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div className="flex flex-col md:flex-row items-center gap-8">
-          <PhotoUpload 
-            pilotId={id as string} 
-            currentImage={pilot.imageUrl} 
-            onUploadComplete={(newUrl) => setPilot(prev => prev ? { ...prev, imageUrl: newUrl } : null)}
-          />
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter">{pilot.PILOTO}</h1>
-            <p className="text-muted-foreground font-semibold flex items-center justify-center md:justify-start gap-2">
-              <Shield className="w-4 h-4 text-blue-500" />
-              LICENCIA: {pilot.LICENCIA || "N/A"}
-            </p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div>
+          <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter text-slate-950 dark:text-white">{pilot.PILOTO}</h1>
+          <p className="text-muted-foreground font-bold flex items-center gap-2 mt-1">
+            <Shield className="w-4 h-4 text-blue-500" />
+            LICENCIA: {pilot.LICENCIA || "N/A"}
+          </p>
         </div>
         <div className="flex items-center gap-4">
             <AnimatePresence>
@@ -123,7 +116,7 @@ export default function PilotProfilePage() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0 }}
-                        className="flex items-center gap-2 text-green-600 font-bold text-sm bg-green-50 px-4 py-2 rounded-lg border border-green-100"
+                        className="flex items-center gap-2 text-green-600 font-bold text-sm bg-green-50 dark:bg-green-950/80 px-4 py-2 rounded-lg border border-green-200 dark:border-green-800"
                     >
                         <CheckCircle className="w-4 h-4" />
                         CAMBIOS GUARDADOS
@@ -147,6 +140,15 @@ export default function PilotProfilePage() {
                 <FileText className="w-6 h-6" />
             </button>
         </div>
+      </div>
+
+      {/* Profile Photo Upload Box & Instructions */}
+      <div className="mb-10">
+        <PhotoUpload 
+          pilotId={id as string} 
+          currentImage={pilot.imageUrl} 
+          onUploadComplete={(newUrl) => setPilot(prev => prev ? { ...prev, imageUrl: newUrl } : null)}
+        />
       </div>
 
       {/* Hidden Report for Printing */}
@@ -219,6 +221,21 @@ export default function PilotProfilePage() {
                 />
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-muted-foreground uppercase">Correo Electrónico / Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input 
+                  type="email" 
+                  name="EMAIL"
+                  placeholder="ejemplo@empresa.com"
+                  className="input-field pl-12"
+                  value={formData.EMAIL || ""}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -248,7 +265,7 @@ export default function PilotProfilePage() {
                       name={field.id}
                       placeholder="DD/MM/AAAA"
                       className="input-field pl-12"
-                      value={(formData as any)[field.id] || ""}
+                      value={(formData[field.id as keyof Pilot] as string) || ""}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -261,6 +278,52 @@ export default function PilotProfilePage() {
                 />
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Habilitaciones de Aeronaves */}
+        <section className="space-y-4 md:col-span-2 p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-200 dark:border-slate-700 shadow-sm">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white flex items-center gap-2 border-b-2 border-slate-200 dark:border-slate-700 pb-3">
+            <Plane className="w-5 h-5 text-blue-600" />
+            HABILITACIONES A AERONAVES DE LA EMPRESA
+          </h2>
+          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            Seleccione los modelos a los que este piloto se encuentra habilitado operativamente:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+            {[
+              { key: "AW109", label: "AW109", desc: "AgustaWestland AW109" },
+              { key: "BO105", label: "BO105", desc: "MBB BO 105" },
+              { key: "RH44", label: "RH44", desc: "Robinson R44 / RH44" },
+              { key: "BN2B", label: "BN2B", desc: "Britten-Norman Islander" },
+            ].map((ac) => {
+              const isEnabled = Boolean(formData[ac.key as keyof Pilot] && formData[ac.key as keyof Pilot] !== "N.A." && formData[ac.key as keyof Pilot] !== "0" && formData[ac.key as keyof Pilot] !== "");
+              return (
+                <button
+                  key={ac.key}
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      [ac.key]: isEnabled ? "" : ac.key,
+                    }));
+                  }}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all flex flex-col justify-between ${
+                    isEnabled
+                      ? "bg-blue-50 dark:bg-blue-950/80 border-blue-600 dark:border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="font-black text-base">{ac.label}</span>
+                    <div className={`w-5 h-5 rounded-md flex items-center justify-center border-2 ${isEnabled ? "bg-blue-600 border-blue-600 text-white" : "border-slate-400"}`}>
+                      {isEnabled && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold opacity-80">{ac.desc}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -285,7 +348,7 @@ export default function PilotProfilePage() {
                             type="text" 
                             name={field.id}
                             className="input-field"
-                            value={(formData as any)[field.id] || ""}
+                            value={(formData[field.id as keyof Pilot] as string) || ""}
                             onChange={handleInputChange}
                         />
                     </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Pilot } from "@/lib/types";
 import { getPilots } from "@/lib/utils";
-import { Copy, Check, ExternalLink, ShieldCheck, Mail, MessageSquare } from "lucide-react";
+import { Copy, Check, ExternalLink, ShieldCheck, MessageSquare, Mail, Sparkles, Plus, Trash2, X, Loader2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,6 +11,18 @@ export default function AdminInvitesPage() {
   const [pilots, setPilots] = useState<Pilot[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [newPilot, setNewPilot] = useState({
+    PILOTO: "",
+    DNI: "",
+    EMAIL: "",
+    TELEFONO: "",
+    BASE: "",
+    LICENCIA: "",
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -33,78 +45,346 @@ export default function AdminInvitesPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  if (loading) return <div className="p-20 text-center text-muted-foreground animate-pulse font-bold tracking-widest uppercase">Cargando Invitaciones...</div>;
+  const getEmailSubject = () => "MODENA AIR SERVICE - Invitación a Activar su Legajo Digital de Piloto";
+
+  const getEmailBody = (pilot: Pilot) => {
+    const url = `${window.location.origin}/register/${pilot.inviteToken || ""}`;
+    return `Estimado/a ${pilot.PILOTO},
+
+Le enviamos su enlace de acceso exclusivo para registrarse y verificar su Legajo Digital de Tripulante en el nuevo Panel de Pilotos.
+
+A través del siguiente enlace podrá acceder a su formulario interactivo para revisar, corregir y actualizar:
+• Datos personales y contacto
+• Foto de perfil (proporción 1:1)
+• Licencia ANAC, CMA y Control Bienal
+• Habilitaciones a aeronaves de la empresa (AW109, BO105, RH44, BN2B)
+• Cursos, Simulador y Evaluaciones
+
+👉 Ingrese a su Formulario de Registro aquí:
+${url}
+
+Por cualquier consulta, comuníquese con la Dirección de Operaciones.
+
+Atentamente,
+Departamento de Seguridad y Operaciones
+Modena Air Service`;
+  };
+
+  const handleOpenEmail = (pilot: Pilot) => {
+    const email = pilot.EMAIL || "";
+    const subject = encodeURIComponent(getEmailSubject());
+    const body = encodeURIComponent(getEmailBody(pilot));
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
+  };
+
+  const handleCreatePilot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPilot.PILOTO.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/pilots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPilot),
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setPilots(prev => [created, ...prev]);
+        setShowAddModal(false);
+        setNewPilot({ PILOTO: "", DNI: "", EMAIL: "", TELEFONO: "", BASE: "", LICENCIA: "" });
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Error al registrar el piloto");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al guardar el piloto");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeletePilot = async (id: string, name: string) => {
+    if (!confirm(`¿Está seguro de eliminar permanentemente al piloto "${name}" y todos sus legajos/documentos?`)) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/pilots/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPilots(prev => prev.filter(p => p.id !== id));
+      } else {
+        alert("Error al eliminar el piloto.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return (
+    <div className="p-20 text-center text-slate-400 animate-pulse font-black tracking-widest uppercase">
+      Cargando Enlaces e Invitaciones de Tripulación...
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-10 max-w-6xl mx-auto pb-20 mt-16 md:mt-0">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter mb-2">Centro de Invitaciones</h1>
-          <p className="text-muted-foreground font-semibold">Genera y distribuye enlaces de registro para la tripulación.</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-200 text-xs font-black rounded-full uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5" />
+            Centro de Envío de Comunicaciones
+          </div>
+          <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter text-slate-950 dark:text-white">
+            Invitaciones y Registros de Pilotos
+          </h1>
+          <p className="text-muted-foreground font-bold text-sm mt-1">
+            Envíe enlaces por Email o WhatsApp a los pilotos para que actualicen sus datos y activen su usuario.
+          </p>
         </div>
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-2xl flex items-center gap-4">
-            <ShieldCheck className="w-8 h-8 text-blue-500" />
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase rounded-2xl transition-all shadow-lg shadow-blue-500/25"
+          >
+            <UserPlus className="w-4 h-4" />
+            Registrar Nuevo Piloto
+          </button>
+          
+          <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-3 px-4 rounded-2xl flex items-center gap-3 shadow-md">
+            <ShieldCheck className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
             <div>
-                <p className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Estado del Sistema</p>
-                <p className="text-sm font-bold text-blue-900 dark:text-blue-100">Invitaciones Activas ({pilots.length})</p>
+              <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">Total Pilotos</p>
+              <p className="text-sm font-black text-slate-950 dark:text-white">{pilots.length} Enlaces</p>
             </div>
+          </div>
         </div>
       </div>
 
+      {/* Invitation Cards Grid */}
       <div className="grid gap-4">
-        {pilots.map((pilot, idx) => (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            key={pilot.id}
-            className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-xl hover:border-blue-300 transition-all"
-          >
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl font-bold text-slate-400">
-                    {pilot.PILOTO.charAt(0)}
+        {pilots.map((pilot, idx) => {
+          const isRegistered = Boolean(pilot.user);
+          return (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
+              key={pilot.id}
+              className="group bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-xl hover:border-blue-500 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-700 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-sm border border-blue-800">
+                  {pilot.PILOTO.charAt(0)}
                 </div>
                 <div>
-                    <h3 className="font-black text-lg uppercase tracking-tight">{pilot.PILOTO}</h3>
-                    <p className="text-xs font-bold text-muted-foreground uppercase">{pilot.DNI ? `DNI: ${pilot.DNI}` : "Sin DNI registrado"}</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-lg uppercase tracking-tight text-slate-950 dark:text-white">{pilot.PILOTO}</h3>
+                    {isRegistered ? (
+                      <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-[10px] font-black uppercase rounded-full">
+                        Registrado ✓
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 bg-amber-100 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-[10px] font-black uppercase rounded-full">
+                        Pendiente ⚡
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mt-1 text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span>DNI: <strong className="text-slate-950 dark:text-white">{pilot.DNI || "—"}</strong></span>
+                    <span>•</span>
+                    <span>Email: <strong className="text-slate-950 dark:text-white">{pilot.EMAIL || "Sin email"}</strong></span>
+                    <span>•</span>
+                    <span>Base: <strong className="text-slate-950 dark:text-white">{pilot.BASE || "—"}</strong></span>
+                  </div>
                 </div>
-            </div>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Email Action */}
                 <button 
-                    onClick={() => handleCopy(pilot.inviteToken || "", pilot.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                        copiedId === pilot.id 
-                        ? "bg-green-500 text-white" 
-                        : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-blue-600"
-                    }`}
+                  onClick={() => handleOpenEmail(pilot)}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-200 hover:bg-blue-600 hover:text-white text-xs font-black rounded-xl transition-all shadow-xs"
+                  title="Enviar correo de invitación personalizado"
                 >
-                    {copiedId === pilot.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copiedId === pilot.id ? "COPIADO" : "COPIAR ENLACE"}
+                  <Mail className="w-4 h-4" />
+                  Enviar Email
+                </button>
+
+                {/* Copy Link */}
+                <button 
+                  onClick={() => handleCopy(pilot.inviteToken || "", pilot.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-xs transition-all ${
+                    copiedId === pilot.id 
+                      ? "bg-emerald-600 text-white" 
+                      : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-950 hover:text-white text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700"
+                  }`}
+                >
+                  {copiedId === pilot.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copiedId === pilot.id ? "COPIADO" : "COPIAR ENLACE"}
                 </button>
                 
+                {/* WhatsApp */}
                 <a 
-                    href={`https://wa.me/${pilot.TELEFONO?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${pilot.PILOTO}, por favor regístrate en el nuevo Panel de Pilotos usando este enlace: ${window.location.origin}/register/${pilot.inviteToken}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2.5 rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all shadow-sm"
-                    title="Enviar por WhatsApp"
+                  href={`https://wa.me/${pilot.TELEFONO?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${pilot.PILOTO}, te enviamos el enlace para registrarte y actualizar tus datos en el Panel de Pilotos de Modena Air Service: ${window.location.origin}/register/${pilot.inviteToken}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all shadow-xs"
+                  title="Enviar por WhatsApp"
                 >
-                    <MessageSquare className="w-5 h-5" />
+                  <MessageSquare className="w-4 h-4" />
                 </a>
 
+                {/* External Link */}
                 <Link 
-                    href={`/register/${pilot.inviteToken}`}
-                    target="_blank"
-                    className="p-2.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                    title="Ver página de registro"
+                  href={`/register/${pilot.inviteToken}`}
+                  target="_blank"
+                  className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-blue-600 hover:text-white transition-all border border-slate-300 dark:border-slate-700"
+                  title="Probar vista del formulario"
                 >
-                    <ExternalLink className="w-5 h-5" />
+                  <ExternalLink className="w-4 h-4" />
                 </Link>
-            </div>
-          </motion.div>
-        ))}
+
+                {/* Delete Pilot */}
+                <button
+                  onClick={() => handleDeletePilot(pilot.id, pilot.PILOTO)}
+                  disabled={deletingId === pilot.id}
+                  className="p-2 rounded-xl bg-red-50 dark:bg-red-950 text-red-600 hover:bg-red-600 hover:text-white transition-all border border-red-200 dark:border-red-800 disabled:opacity-50"
+                  title="Eliminar piloto"
+                >
+                  {deletingId === pilot.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
+
+      {/* Add New Pilot Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative"
+            >
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="absolute right-5 top-5 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-2xl font-black font-outfit uppercase tracking-tight text-slate-950 dark:text-white mb-1 flex items-center gap-2">
+                <UserPlus className="w-6 h-6 text-blue-600" />
+                Registrar Nuevo Piloto
+              </h2>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-6">
+                Complete los datos principales. Se generará automáticamente un enlace exclusivo de invitación.
+              </p>
+
+              <form onSubmit={handleCreatePilot} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Nombre Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej. GONZALEZ, Carlos"
+                    value={newPilot.PILOTO}
+                    onChange={(e) => setNewPilot(prev => ({ ...prev, PILOTO: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">DNI</label>
+                    <input
+                      type="text"
+                      placeholder="ej. 30123456"
+                      value={newPilot.DNI}
+                      onChange={(e) => setNewPilot(prev => ({ ...prev, DNI: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Base</label>
+                    <input
+                      type="text"
+                      placeholder="ej. SABE / BUE"
+                      value={newPilot.BASE}
+                      onChange={(e) => setNewPilot(prev => ({ ...prev, BASE: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    placeholder="piloto@empresa.com"
+                    value={newPilot.EMAIL}
+                    onChange={(e) => setNewPilot(prev => ({ ...prev, EMAIL: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Teléfono</label>
+                    <input
+                      type="text"
+                      placeholder="+54 9 11..."
+                      value={newPilot.TELEFONO}
+                      onChange={(e) => setNewPilot(prev => ({ ...prev, TELEFONO: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">N° Licencia ANAC</label>
+                    <input
+                      type="text"
+                      placeholder="ej. TLA-12345"
+                      value={newPilot.LICENCIA}
+                      onChange={(e) => setNewPilot(prev => ({ ...prev, LICENCIA: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-5 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-extrabold text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    CANCELAR
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    {submitting ? "GUARDANDO..." : "CREAR Y GENERAR ENLACE"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

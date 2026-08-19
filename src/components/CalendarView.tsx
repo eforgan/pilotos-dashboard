@@ -2,18 +2,16 @@
 
 import React, { useState, useMemo } from "react";
 import { 
-  getPilotExpirations, 
-  formatDate 
+  getPilotExpirations
 } from "@/lib/utils";
 import { Pilot, ExpirationItem } from "@/lib/types";
 import { 
-  ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  AlertCircle, Clock, CheckCircle2 
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon
 } from "lucide-react";
 import { 
   format, addMonths, subMonths, startOfMonth, 
   endOfMonth, startOfWeek, endOfWeek, isSameMonth, 
-  isSameDay, addDays, eachDayOfInterval 
+  isSameDay, eachDayOfInterval 
 } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -55,14 +53,17 @@ export default function CalendarView({ pilots }: CalendarViewProps) {
       {/* Calendar Header */}
       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/20">
         <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                <CalendarIcon className="w-6 h-6" />
+            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 shrink-0">
+                <CalendarIcon className="w-7 h-7" />
             </div>
             <div>
-                <h2 className="text-2xl font-black uppercase tracking-tighter leading-tight">
-                    {format(currentMonth, "MMMM yyyy", { locale: es })}
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 mb-0.5">Cronograma de Vencimientos</p>
+                <h2 className="text-3xl font-black uppercase tracking-tighter leading-none text-slate-900 dark:text-white">
+                    {format(currentMonth, "MMMM", { locale: es })}
                 </h2>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cronograma de Vencimientos</p>
+                <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                    {format(currentMonth, "yyyy")}
+                </p>
             </div>
         </div>
         
@@ -70,7 +71,7 @@ export default function CalendarView({ pilots }: CalendarViewProps) {
             <button onClick={prevMonth} className="p-3 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
                 <ChevronLeft className="w-5 h-5" />
             </button>
-            <button onClick={() => setCurrentMonth(new Date())} className="px-4 py-2 text-xs font-black uppercase tracking-widest hover:text-blue-600 transition-colors">
+            <button onClick={() => setCurrentMonth(new Date())} className="px-4 py-2 text-xs font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors">
                 Hoy
             </button>
             <button onClick={nextMonth} className="p-3 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
@@ -80,10 +81,11 @@ export default function CalendarView({ pilots }: CalendarViewProps) {
       </div>
 
       {/* Days of Week */}
-      <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
-        {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map(day => (
-          <div key={day} className="py-4 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {day}
+      <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50">
+        {["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"].map(day => (
+          <div key={day} className="py-3 text-center text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            <span className="hidden sm:block">{day}</span>
+            <span className="block sm:hidden">{day.slice(0, 3)}</span>
           </div>
         ))}
       </div>

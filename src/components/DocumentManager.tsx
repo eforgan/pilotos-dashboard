@@ -2,17 +2,18 @@
 
 import React, { useState, useRef } from "react";
 import { 
-  FileText, Upload, Trash2, Eye, Loader2, 
-  CheckCircle, AlertCircle, FilePlus 
+  FileText, Eye, Loader2, FilePlus, CheckCircle, Clock 
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 
 interface Document {
   id: string;
   type: string;
   fileUrl: string;
   fileName: string;
-  createdAt: string;
+  createdAt: string | Date;
+  verified?: boolean;
 }
 
 interface DocumentManagerProps {
@@ -23,9 +24,32 @@ interface DocumentManagerProps {
 }
 
 export default function DocumentManager({ pilotId, docType, label, initialDocuments = [] }: DocumentManagerProps) {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === "ADMIN";
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [uploading, setUploading] = useState(false);
+  const [verifying, setVerifying] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVerify = async (docId: string, currentStatus: boolean) => {
+    setVerifying(docId);
+    try {
+      const res = await fetch(`/api/upload/document/${docId}/verify`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verified: !currentStatus })
+      });
+      if (res.ok) {
+        setDocuments(prev => prev.map(d => d.id === docId ? { ...d, verified: !currentStatus } : d));
+      } else {
+        alert("Error al verificar");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setVerifying(null);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +120,31 @@ export default function DocumentManager({ pilotId, docType, label, initialDocume
                 <span className="truncate font-medium">{doc.fileName}</span>
             </div>
             <div className="flex items-center gap-1">
+                {isAdmin ? (
+                    <button 
+                        onClick={() => handleVerify(doc.id, !!doc.verified)}
+                        disabled={verifying === doc.id}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                            doc.verified 
+                            ? "text-green-600 bg-green-50 hover:bg-green-100" 
+                            : "text-slate-400 bg-slate-50 hover:bg-slate-100"
+                        }`}
+                        title={doc.verified ? "Marcado como verificado" : "Marcar como verificado"}
+                    >
+                        {verifying === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    </button>
+                ) : (
+                    <div 
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                            doc.verified 
+                            ? "text-green-600 bg-green-50 border border-green-100 dark:bg-green-900/20 dark:border-green-800" 
+                            : "text-slate-500 bg-slate-50 border border-slate-100 dark:bg-slate-800 dark:border-slate-700"
+                        }`}
+                    >
+                        {doc.verified ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        {doc.verified ? "Aprobado" : "Pendiente"}
+                    </div>
+                )}
                 <a 
                     href={doc.fileUrl} 
                     target="_blank" 

@@ -12,6 +12,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "@types/ws": "^8.18.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -24,6 +25,7 @@
     "react-to-print": "^3.3.0",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.5.0",
+    "ws": "^8.21.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -37,5 +39,8 @@
     "prisma": "^7.7.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

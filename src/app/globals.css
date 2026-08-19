@@ -2,21 +2,56 @@
 
 :root {
   --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --primary: #0f172a;
-  --primary-foreground: #f8fafc;
-  --accent: #3b82f6;
-  --muted: #64748b;
-  --muted-foreground: #94a3b8;
-  --border: #e2e8f0;
+  --foreground: #020617;
   
-  /* Alert Levels */
-  --critical: #ef4444;
-  --warning: #f59e0b;
-  --caution: #3b82f6;
-  --ok: #10b981;
+  /* Light Theme Card Variables */
+  --card-bg: #ffffff;
+  --card-text: #020617;
+  --card-subtext: #334155;
+  --card-border: #cbd5e1;
+  --card-inner-bg: #f1f5f9;
+  --card-footer-bg: #e2e8f0;
+  
+  /* Alert Colors (Light) */
+  --critical-bg: #fee2e2;
+  --critical-text: #991b1b;
+  --critical-border: #fca5a5;
+
+  --warning-bg: #fef3c7;
+  --warning-text: #92400e;
+  --warning-border: #fde68a;
+
+  --ok-bg: #dcfce7;
+  --ok-text: #166534;
+  --ok-border: #bbf7d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617;
+    --foreground: #f8fafc;
+    
+    /* Dark Theme Card Variables */
+    --card-bg: #0f172a;
+    --card-text: #ffffff;
+    --card-subtext: #cbd5e1;
+    --card-border: #334155;
+    --card-inner-bg: #1e293b;
+    --card-footer-bg: #1e293b;
+
+    /* Alert Colors (Dark) */
+    --critical-bg: #450a0a;
+    --critical-text: #fca5a5;
+    --critical-border: #991b1b;
+
+    --warning-bg: #451a03;
+    --warning-text: #fde68a;
+    --warning-border: #92400e;
+
+    --ok-bg: #052e16;
+    --ok-text: #bbf7d0;
+    --ok-border: #166534;
+  }
 }
 
 @theme {
@@ -31,70 +66,78 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Custom Components using standard CSS where Tailwind 4 @apply might be tricky */
-.glass-panel {
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px border-color(white / 20%);
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-}
-
+/* Card Styling */
 .card-premium {
-  background-color: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--card-bg) !important;
+  color: var(--card-text) !important;
+  border: 2px solid var(--card-border) !important;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 6px -1px rgb(0 0 0 / 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-premium:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 12px 20px -4px rgb(0 0 0 / 0.18), 0 6px 8px -2px rgb(0 0 0 / 0.1);
+  transform: translateY(-3px);
 }
 
-.badge-status {
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.card-inner-box {
+  background-color: var(--card-inner-bg) !important;
+  border: 1.5px solid var(--card-border) !important;
 }
 
-.btn-primary {
-  background-color: #0f172a;
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
-  transition: opacity 0.2s, transform 0.1s;
+.card-footer-box {
+  background-color: var(--card-footer-bg) !important;
+  border-top: 2px solid var(--card-border) !important;
 }
 
-.btn-primary:hover {
-  opacity: 0.9;
+.text-card-primary {
+  color: var(--card-text) !important;
 }
 
-.btn-primary:active {
-  transform: scale(0.98);
+.text-card-secondary {
+  color: var(--card-subtext) !important;
 }
 
 .input-field {
   width: 100%;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: var(--card-bg);
+  border: 2px solid var(--card-border);
+  color: var(--card-text);
+  font-weight: 700;
   border-radius: 0.75rem;
-  padding: 0.625rem 1rem;
+  padding: 0.75rem 1rem;
   outline: none;
   transition: all 0.2s;
 }
 
+.input-field::placeholder {
+  color: var(--card-subtext);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
 .input-field:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+.btn-primary {
+  background-color: #020617;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #1e293b;
 }
 
 /* Animations */
 .fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
 @keyframes fadeIn {
@@ -104,12 +147,12 @@ body {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: var(--card-border);
   border-radius: 10px;
 }

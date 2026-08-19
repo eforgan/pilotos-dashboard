@@ -2,12 +2,15 @@ export interface Pilot {
   id: string;
   PILOTO: string;
   TELEFONO: string;
+  EMAIL?: string;
   DNI: string;
   FECHA_NAC: string;
   LICENCIA: string;
   CMA: string;
   AW109: string;
   BO105: string;
+  RH44: string;
+  BN2B: string;
   CONTROL_BIENAL: string;
   INSP_RECONOC: string;
   SIMULADOR: string;
@@ -29,8 +32,12 @@ export interface Pilot {
   RO: string;
   imageUrl?: string | null;
   inviteToken?: string | null;
-  documents?: any[]; // Simplified for now
+  user?: { id: string; email: string; role: string } | null;
+  documents?: { id: string; type: string; fileUrl: string; fileName: string; pilotId: string; createdAt: Date | string; updatedAt: Date | string; verified?: boolean }[]; // Simplified for now
 }
+
+export const AIRCRAFT_MODELS = ["AW109", "BO105", "RH44", "BN2B"] as const;
+export type AircraftModel = typeof AIRCRAFT_MODELS[number];
 
 export type AlertLevel = "critical" | "warning" | "caution" | "ok" | "na";
 

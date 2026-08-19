@@ -1,19 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   Plane, 
   Users, 
   LayoutDashboard, 
-  Settings, 
   LogOut, 
   Menu, 
   X, 
   Bell,
   ShieldAlert,
-  Calendar
+  Calendar,
+  FileCheck,
+  Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +23,7 @@ const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -30,14 +33,18 @@ const Sidebar = () => {
 
   // Close sidebar on route change
   useEffect(() => {
-    setIsOpen(false);
+    if (isOpen) {
+      setIsOpen(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Lista de Pilotos", href: "/pilots", icon: Users },
-    { name: "Mis Datos", href: "/pilot/pilot-0-21524146.0", icon: Calendar }, // Mocking an ID for demo
-    { name: "Alertas", href: "/alerts", icon: Bell },
+    { name: "Alertas ANAC", href: "/alerts", icon: Bell },
+    { name: "Matriz Riesgo FRAT", href: "/frat", icon: FileCheck },
+    { name: "Logbook & Horas", href: "/logbook", icon: Clock },
+    { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
   ];
 
   return (
@@ -46,7 +53,19 @@ const Sidebar = () => {
       <div className={`md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-300 ${scrolled ? "glass-panel" : "bg-transparent"}`}>
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 relative">
-            <img src="/logo.png" alt="Modena Logo" className="w-full h-full object-contain" />
+            {!logoError ? (
+              <Image 
+                src="/logo.png" 
+                alt="Modena Logo" 
+                fill
+                className="object-contain" 
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs italic">
+                    MAE
+                </div>
+            )}
           </div>
           <span className="font-bold text-lg tracking-tight">Modena Dashboard</span>
         </div>
@@ -59,11 +78,27 @@ const Sidebar = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-72 h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-40">
+      <aside className="hidden md:flex flex-col w-72 h-screen sticky top-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-slate-950/50 z-40">
         <div className="p-8">
-          <div className="flex flex-col mb-10">
-            <img src="/logo.png" alt="Modena Logo" className="w-48 h-auto object-contain mb-2" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold px-1">Pilot Management</p>
+          <div className="flex flex-col items-center justify-center mb-10">
+            <div className="relative w-56 h-24 mb-2">
+              {!logoError ? (
+                <Image 
+                    src="/logo.png" 
+                    alt="Modena Logo" 
+                    fill
+                    priority
+                    className="object-contain" 
+                    onError={() => setLogoError(true)}
+                />
+              ) : (
+                  <div className="flex flex-col items-center">
+                      <span className="text-3xl font-black italic text-blue-600 leading-none">MODENA</span>
+                      <span className="text-xs font-bold tracking-widest text-slate-400 mt-1">AIR SERVICE</span>
+                  </div>
+              )}
+            </div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 font-bold text-center">Aviation Excellence</p>
           </div>
 
           <nav className="space-y-1.5 font-medium">
@@ -88,13 +123,13 @@ const Sidebar = () => {
         </div>
 
         <div className="mt-auto p-8 pt-0">
-          <div className="p-4 rounded-2xl bg-slate-900/5 dark:bg-slate-100/5 border border-slate-200/50 dark:border-slate-100/10">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-3">
               <ShieldAlert className="w-5 h-5 text-red-500" />
-              <span className="text-sm font-semibold">Alertas Críticas</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">Alertas Críticas</span>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Hay 12 documentos que vencen pronto.</p>
-            <Link href="/alerts" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">Ver Reportes →</Link>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Hay 12 documentos que vencen pronto.</p>
+            <Link href="/alerts" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline">Ver Reportes →</Link>
           </div>
         </div>
       </aside>

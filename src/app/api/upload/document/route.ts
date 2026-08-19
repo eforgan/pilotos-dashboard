@@ -21,7 +21,8 @@ export async function POST(request: Request) {
     }
 
     // Security check
-    if (session.user.role !== "ADMIN" && (session.user as any).pilotId !== pilotId) {
+    const u = session.user as { role?: string; pilotId?: string };
+    if (u.role !== "ADMIN" && u.pilotId !== pilotId) {
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 

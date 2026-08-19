@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 export async function POST(request: Request) {
@@ -16,21 +16,27 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create a unique filename
-    const filename = `${pilotId}-${Date.now()}${path.extname(file.name)}`;
-    const relativePath = `/uploads/profiles/${filename}`;
-    const absolutePath = path.join(process.cwd(), "public", relativePath);
+    let imageUrl = `data:${file.type || "image/jpeg"};base64,${buffer.toString("base64")}`;
 
-    // Write to public folder
-    await writeFile(absolutePath, buffer);
+    // Try saving locally for persistent static serve if filesystem is writable
+    try {
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "profiles");
+      await mkdir(uploadDir, { recursive: true });
+      const filename = `${pilotId}-${Date.now()}${path.extname(file.name) || ".jpg"}`;
+      const absolutePath = path.join(uploadDir, filename);
+      await writeFile(absolutePath, buffer);
+      imageUrl = `/uploads/profiles/${filename}`;
+    } catch {
+      // Fallback to base64 data URI for serverless production (Vercel)
+    }
 
     // Update database
-    const updatedPilot = await db.pilot.update({
+    await db.pilot.update({
       where: { id: pilotId },
-      data: { imageUrl: relativePath },
+      data: { imageUrl },
     });
 
-    return NextResponse.json({ url: relativePath });
+    return NextResponse.json({ url: imageUrl });
   } catch (error) {
     console.error("Upload failed:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

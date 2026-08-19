@@ -24,12 +24,15 @@ model Pilot {
   id              String   @id @default(cuid())
   PILOTO          String
   TELEFONO        String?
+  EMAIL           String?
   DNI             String?  @unique
   FECHA_NAC       String?
   LICENCIA        String?
   CMA             String?
   AW109           String?
   BO105           String?
+  RH44            String?
+  BN2B            String?
   CONTROL_BIENAL  String?
   INSP_RECONOC    String?
   SIMULADOR       String?
@@ -69,5 +72,6 @@ model Document {
   pilot     Pilot    @relation(fields: [pilotId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  verified  Boolean  @default(false)
 }
 

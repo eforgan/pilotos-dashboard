@@ -1,32 +1,26 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "@neondatabase/serverless";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+
+// Enable WebSockets for Neon in Node.js server runtime
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const createPrismaClient = () => {
-  const connectionString = process.env.DATABASE_URL;
-  
-  if (!connectionString) {
-    if (process.env.NODE_ENV === "production") {
-       throw new Error("DATABASE_URL is missing in production environment");
-    }
-    // Locally it might be missing if not using Neon yet, but handled by Prisma usually
-    return new PrismaClient();
-  }
+function createPrismaClient(): PrismaClient {
+  const connectionString =
+    process.env.DATABASE_URL ||
+    "postgresql://neondb_owner:npg_YlxtfsAoD1M4@ep-little-morning-a4qh58zw-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require";
+  const adapter = new PrismaNeon({ connectionString });
+  return new PrismaClient({ adapter });
+}
 
-  try {
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaNeon(pool as any);
-    return new PrismaClient({ adapter });
-  } catch (error) {
-    console.error("Failed to initialize Prisma with Neon adapter:", error);
-    return new PrismaClient();
-  }
-};
+export const db: PrismaClient =
+  globalForPrisma.prisma ?? createPrismaClient();
 
-export const db = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}
