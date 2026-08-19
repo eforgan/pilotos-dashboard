@@ -91,3 +91,69 @@ export const FIELD_CATEGORIES = {
   operational: { label: "Operacional", color: "#f59e0b", icon: "Plane" },
   safety: { label: "Seguridad", color: "#10b981", icon: "Shield" },
 } as const;
+
+export interface BaseContract {
+  id: string;
+  name: string;
+  client: string;
+  location: string;
+  fleetRequired: { model: AircraftModel; count: number }[];
+  description: string;
+}
+
+export const COMPANY_BASES: BaseContract[] = [
+  {
+    id: "nunez",
+    name: "Base Núñez",
+    client: "SAME AÉREO",
+    location: "Buenos Aires (Núñez)",
+    fleetRequired: [{ model: "AW109", count: 1 }],
+    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7."
+  },
+  {
+    id: "rosario",
+    name: "Base Rosario",
+    client: "UTV",
+    location: "Aeropuerto de Rosario (SAAR)",
+    fleetRequired: [{ model: "BO105", count: 1 }],
+    description: "Contrato con UTV Emergencias desde el Aeropuerto de Rosario."
+  },
+  {
+    id: "neuquen",
+    name: "Base Neuquén",
+    client: "Vista Energy",
+    location: "Neuquén (Vaca Muerta)",
+    fleetRequired: [
+      { model: "BO105", count: 1 },
+      { model: "AW109", count: 1 }
+    ],
+    description: "Contrato con Vista Energy para operaciones con 1 BO105 y 1 AW109."
+  },
+  {
+    id: "cabo_virgenes",
+    name: "Base Cabo Vírgenes",
+    client: "PSM",
+    location: "Cabo Vírgenes (Santa Cruz)",
+    fleetRequired: [{ model: "AW109", count: 2 }],
+    description: "Contrato con PSM operando con 2 helicópteros AW109SP."
+  },
+  {
+    id: "sierra_grande",
+    name: "Base Sierra Grande",
+    client: "YPF Vmos",
+    location: "Sierra Grande (Río Negro)",
+    fleetRequired: [{ model: "BO105", count: 1 }],
+    description: "Contrato con YPF Vmos operando con 1 BO105."
+  },
+  {
+    id: "calafate",
+    name: "Base El Calafate",
+    client: "Solo Patagonia",
+    location: "El Calafate (SAWC)",
+    fleetRequired: [
+      { model: "BN2B", count: 1 },
+      { model: "RH44", count: 1 }
+    ],
+    description: "Contrato con Solo Patagonia operando 1 avión BN2B y 1 helicóptero RH44."
+  }
+];

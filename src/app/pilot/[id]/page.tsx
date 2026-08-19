@@ -211,14 +211,21 @@ export default function PilotProfilePage() {
             <div className="space-y-1.5">
               <label className="text-xs font-black text-muted-foreground uppercase">Base de Operaciones</label>
               <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input 
-                  type="text" 
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                <select 
                   name="BASE"
-                  className="input-field pl-12"
+                  className="input-field pl-12 bg-white dark:bg-slate-900"
                   value={formData.BASE || ""}
                   onChange={handleInputChange}
-                />
+                >
+                  <option value="">Seleccionar Base de Operaciones...</option>
+                  <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
+                  <option value="Base Rosario">Base Rosario (UTV)</option>
+                  <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
+                  <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
+                  <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
+                  <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+                </select>
               </div>
             </div>
 

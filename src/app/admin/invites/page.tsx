@@ -318,14 +318,20 @@ Modena Air Service`;
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Base</label>
-                    <input
-                      type="text"
-                      placeholder="ej. SABE / BUE"
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Base de Operaciones</label>
+                    <select
                       value={newPilot.BASE}
                       onChange={(e) => setNewPilot(prev => ({ ...prev, BASE: e.target.value }))}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
-                    />
+                    >
+                      <option value="">Seleccionar Base...</option>
+                      <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
+                      <option value="Base Rosario">Base Rosario (UTV)</option>
+                      <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
+                      <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
+                      <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
+                      <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+                    </select>
                   </div>
                 </div>
 
