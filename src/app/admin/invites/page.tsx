@@ -70,11 +70,46 @@ Departamento de Seguridad y Operaciones
 Modena Air Service`;
   };
 
+  const formatWhatsAppPhone = (phoneStr?: string | null): string => {
+    if (!phoneStr) return "";
+    let digits = phoneStr.replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("11") || digits.startsWith("15")) {
+      digits = "549" + digits;
+    } else if (digits.startsWith("911")) {
+      digits = "54" + digits;
+    } else if (!digits.startsWith("54") && digits.length <= 10) {
+      digits = "549" + digits;
+    }
+    return digits;
+  };
+
   const handleOpenEmail = (pilot: Pilot) => {
-    const email = pilot.EMAIL || "";
+    const email = (pilot.EMAIL || "").trim();
     const subject = encodeURIComponent(getEmailSubject());
     const body = encodeURIComponent(getEmailBody(pilot));
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
+
+    if (!email) {
+      alert(`El piloto "${pilot.PILOTO}" no tiene email asignado. Se ha copiado la invitación al portapapeles.`);
+      navigator.clipboard.writeText(getEmailBody(pilot));
+      return;
+    }
+
+    // Standard mailto via location assignment to prevent popup blockers
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleOpenWhatsApp = (pilot: Pilot) => {
+    const phone = formatWhatsAppPhone(pilot.TELEFONO);
+    const registerUrl = `${window.location.origin}/register/${pilot.inviteToken || ""}`;
+    const message = `Hola ${pilot.PILOTO}, te enviamos el enlace para registrarte y actualizar tu Legajo Digital en Modena Air Service:\n\n👉 ${registerUrl}\n\nPor cualquier consulta, comunicate con Operaciones.`;
+    const encoded = encodeURIComponent(message);
+
+    const waUrl = phone 
+      ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCreatePilot = async (e: React.FormEvent) => {
@@ -233,15 +268,14 @@ Modena Air Service`;
                 </button>
                 
                 {/* WhatsApp */}
-                <a 
-                  href={`https://wa.me/${pilot.TELEFONO?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${pilot.PILOTO}, te enviamos el enlace para registrarte y actualizar tus datos en el Panel de Pilotos de Modena Air Service: ${window.location.origin}/register/${pilot.inviteToken}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all shadow-xs"
+                <button 
+                  onClick={() => handleOpenWhatsApp(pilot)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all text-xs font-black shadow-xs"
                   title="Enviar por WhatsApp"
                 >
                   <MessageSquare className="w-4 h-4" />
-                </a>
+                  WhatsApp
+                </button>
 
                 {/* External Link */}
                 <Link 
