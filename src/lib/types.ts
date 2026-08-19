@@ -107,8 +107,8 @@ export const COMPANY_BASES: BaseContract[] = [
     name: "Base Núñez",
     client: "SAME AÉREO",
     location: "Buenos Aires (Núñez)",
-    fleetRequired: [{ model: "AW109", count: 1 }],
-    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7."
+    fleetRequired: [{ model: "BO105", count: 1 }],
+    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7 operando con 1 BO105."
   },
   {
     id: "rosario",
