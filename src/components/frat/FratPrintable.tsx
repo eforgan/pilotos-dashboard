@@ -17,6 +17,7 @@ export interface FratFormData {
   responses: FratResponses;
   generalNotes?: string | null;
   decision?: string | null;
+  picSignature?: string | null;
   createdAt: string | Date;
   pilot?: { PILOTO: string } | null;
 }
@@ -78,8 +79,10 @@ export const FratPrintable = React.forwardRef<HTMLDivElement, FratPrintableProps
         </div>
         <div>
           <p className="text-[10px] font-black text-slate-400 uppercase">
-            {form.type === "TRAINING"
-              ? "Instructor / Inspector"
+            {form.missionType === "Entrenamiento" || form.type === "TRAINING"
+              ? "Instructor / Evaluador"
+              : form.missionType === "Inspección"
+              ? "Inspector de Vuelo"
               : form.missionType === "HEMS"
               ? "Piloto HEMS"
               : "Comandante (PIC)"}
@@ -88,13 +91,17 @@ export const FratPrintable = React.forwardRef<HTMLDivElement, FratPrintableProps
         </div>
         <div>
           <p className="text-[10px] font-black text-slate-400 uppercase">
-            {form.type === "TRAINING"
+            {form.sicName === "N/A - Vuelo Monopiloto"
+              ? "Modalidad"
+              : form.missionType === "Entrenamiento" || form.type === "TRAINING"
               ? "Piloto en Instrucción"
+              : form.missionType === "Inspección"
+              ? "Piloto Inspeccionado"
               : form.missionType === "HEMS"
               ? "Técnico Operativo (TFO) / Copiloto"
-              : "Copiloto / TFO"}
+              : "Copiloto (SIC)"}
           </p>
-          <p className="font-bold">{form.sicName || "N/A"}</p>
+          <p className="font-bold">{form.sicName || "N/A - Vuelo Monopiloto"}</p>
         </div>
         <div>
           <p className="text-[10px] font-black text-slate-400 uppercase">Ruta</p>
@@ -157,7 +164,13 @@ export const FratPrintable = React.forwardRef<HTMLDivElement, FratPrintableProps
       )}
 
       <div className="grid grid-cols-2 gap-8 mt-10 text-center text-xs">
-        <div className="border-t border-slate-400 pt-2">{form.picName}</div>
+        <div className="border-t border-slate-400 pt-2 flex flex-col items-center">
+          {form.picSignature && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.picSignature} alt="Firma PIC" className="h-12 object-contain mb-1" />
+          )}
+          <span>{form.picName}</span>
+        </div>
         <div className="border-t border-slate-400 pt-2">Dirección de Operaciones / SMS</div>
       </div>
     </div>

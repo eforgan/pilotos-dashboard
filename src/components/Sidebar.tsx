@@ -4,32 +4,31 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Plane, 
-  Users, 
-  LayoutDashboard, 
-  LogOut, 
-  Menu, 
-  X, 
+import { useSession, signOut } from "next-auth/react";
+import {
+  Plane,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
   Bell,
   ShieldAlert,
-  Calendar,
   FileCheck,
-  Clock
+  Clock,
+  User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const [logoError, setLogoError] = useState(false);
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const user = session?.user as { role?: string; pilotId?: string | null } | undefined;
+  const isAdmin = user?.role === "ADMIN";
+  const pilotId = user?.pilotId;
 
   // Close sidebar on route change
   useEffect(() => {
@@ -39,18 +38,27 @@ const Sidebar = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  const navItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Alertas ANAC", href: "/alerts", icon: Bell },
-    { name: "FRAT", href: "/frat", icon: FileCheck },
-    { name: "Logbook & Horas", href: "/logbook", icon: Clock },
-    { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
-  ];
+  if (pathname === "/login") return null;
+
+  const navItems = isAdmin
+    ? [
+        { name: "Dashboard Flota", href: "/", icon: LayoutDashboard },
+        { name: "Alertas ANAC", href: "/alerts", icon: Bell },
+        { name: "FRAT", href: "/frat", icon: FileCheck },
+        { name: "Logbook & Horas", href: "/logbook", icon: Clock },
+        { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
+      ]
+    : [
+        { name: "Mi Legajo", href: pilotId ? `/pilot/${pilotId}` : "/", icon: User },
+        { name: "Evaluaciones FRAT", href: "/frat", icon: FileCheck },
+        { name: "Logbook & Horas", href: "/logbook", icon: Clock },
+        { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
+      ];
 
   return (
     <>
       {/* Mobile Header */}
-      <div className={`md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-300 ${scrolled ? "glass-panel" : "bg-transparent"}`}>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 py-3 glass-panel border-b border-slate-200 dark:border-slate-800 shadow-md backdrop-blur-xl bg-white/90 dark:bg-slate-900/90">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 relative">
             {!logoError ? (
@@ -103,35 +111,54 @@ const Sidebar = () => {
             <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 font-bold text-center">Aviation Excellence</p>
           </div>
 
-          <nav className="space-y-1.5 font-medium">
+          <nav className="space-y-2 font-bold">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group ${
+                  className={`flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all group ${
                     isActive 
-                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md shadow-slate-200 dark:shadow-slate-950" 
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-lg shadow-blue-500/30 scale-[1.02]" 
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-950 dark:hover:text-white"
                   }`}
                 >
-                  <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-white dark:text-slate-900" : ""}`} />
-                  {item.name}
+                  <div className="flex items-center gap-3">
+                    <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-white" : "text-slate-400 group-hover:text-blue-500"}`} />
+                    <span className="text-xs uppercase tracking-wider">{item.name}</span>
+                  </div>
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse shadow-[0_0_8px_#67e8f9]" />}
                 </Link>
               );
             })}
           </nav>
+
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <ThemeToggle />
+          </div>
         </div>
 
         <div className="mt-auto p-8 pt-0">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-3 mb-3">
-              <ShieldAlert className="w-5 h-5 text-red-500" />
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">Alertas Críticas</span>
+          {isAdmin && (
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 dark:from-slate-900/90 dark:to-slate-950/90 text-white border border-slate-800 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-xl bg-red-500/20 text-red-400">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider text-white">Alertas ANAC</span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-300 mb-3">Monitoreo de vencimientos y licencias en tiempo real.</p>
+              <Link href="/alerts" className="inline-flex items-center gap-1 text-[11px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest transition-all">
+                Ver Reportes →
+              </Link>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Hay 12 documentos que vencen pronto.</p>
-            <Link href="/alerts" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline">Ver Reportes →</Link>
+          )}
+          <div className="mt-4 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              desarrollo @eforgan
+            </p>
           </div>
         </div>
       </aside>
@@ -182,11 +209,18 @@ const Sidebar = () => {
                   ))}
                 </nav>
 
-                <div className="mt-auto">
-                    <button className="flex items-center gap-3 w-full px-5 py-4 text-slate-500 hover:text-red-500 transition-colors">
-                        <LogOut className="w-6 h-6" />
-                        <span className="font-medium text-lg">Cerrar Sesión</span>
-                    </button>
+                <div className="mt-auto space-y-4">
+                  <ThemeToggle />
+                  <button 
+                    onClick={() => signOut()}
+                    className="flex items-center gap-3 w-full px-5 py-3.5 text-slate-500 hover:text-red-500 transition-colors font-bold text-sm"
+                  >
+                      <LogOut className="w-5 h-5" />
+                      <span>Cerrar Sesión</span>
+                  </button>
+                  <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    desarrollo @eforgan
+                  </p>
                 </div>
               </div>
             </motion.div>

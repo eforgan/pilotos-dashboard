@@ -142,6 +142,13 @@ export default function FratDetailPage() {
             <p className="text-sm font-semibold">{form.decision}</p>
           </div>
         )}
+        {form.picSignature && (
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-black uppercase text-slate-400 mb-2">Firma Digital del Comandante / Evaluador</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.picSignature} alt="Firma registrada" className="h-16 object-contain bg-white p-2 rounded-xl border border-slate-200" />
+          </div>
+        )}
       </div>
 
       <div className="hidden">

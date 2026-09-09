@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Plane, AlertTriangle, ShieldCheck, FileText, ChevronRight, X, Download, ExternalLink } from "lucide-react";
+import { BookOpen, Plane, AlertTriangle, ShieldCheck, FileText, ChevronRight, X, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ManualItem {

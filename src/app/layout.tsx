@@ -22,9 +22,10 @@ export default function RootLayout({
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-slate-50 dark:bg-slate-950`}>
         <Providers>
             <div className="flex min-h-screen relative overflow-hidden">
-            {/* Background Decorative Elements */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+            {/* Ambient High-Tech Cyber Glow Orbs */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-indigo-600/15 rounded-full blur-[150px] pointer-events-none" />
             
             <Sidebar />
             
@@ -35,7 +36,7 @@ export default function RootLayout({
                     </div>
                     <footer className="py-6 px-10 border-t border-slate-100 dark:border-slate-800 text-center md:text-left">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                            © {new Date().getFullYear()} Modena Air Service • <span className="text-slate-900 dark:text-white">creado por eforgan</span>
+                            © {new Date().getFullYear()} Modena Air Service • <span className="text-slate-900 dark:text-white">desarrollo @eforgan</span>
                         </p>
                     </footer>
                 </div>

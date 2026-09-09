@@ -153,6 +153,7 @@ export async function POST(request: Request) {
         route: data.route?.trim() || null,
         etd: data.etd?.trim() || null,
         missionType: data.missionType?.trim() || null,
+        crewModality: data.crewModality?.trim() || null,
         responses: data.responses,
         initialScore: score.initialScore,
         finalScore: score.finalScore,
@@ -161,6 +162,7 @@ export async function POST(request: Request) {
         finalRiskLevel: score.finalLevel,
         generalNotes: data.generalNotes?.trim() || null,
         decision: data.decision?.trim() || null,
+        picSignature: data.picSignature || null,
       },
     });
 

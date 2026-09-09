@@ -1,6 +1,6 @@
 import React from "react";
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { FratResponses, FratType, allItems, computeFratScore, getFratSheet } from "@/lib/frat-data";
+import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { FratResponses, FratType, computeFratScore, getFratSheet } from "@/lib/frat-data";
 
 const styles = StyleSheet.create({
   page: { padding: 28, fontSize: 9, fontFamily: "Helvetica" },
@@ -83,12 +83,12 @@ export interface FratPdfProps {
   responses: FratResponses;
   generalNotes?: string | null;
   decision?: string | null;
+  picSignature?: string | null;
   createdAt: string;
 }
 
 export function FratPdfDocument(props: FratPdfProps) {
   const sheet = getFratSheet(props.type);
-  const items = allItems(sheet);
   const score = computeFratScore(sheet, props.responses);
   const riskColor = RISK_COLOR[score.finalLevel];
 
@@ -125,8 +125,10 @@ export function FratPdfDocument(props: FratPdfProps) {
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>
-              {props.type === "TRAINING"
-                ? "Instructor / Inspector"
+              {props.missionType === "Entrenamiento" || props.type === "TRAINING"
+                ? "Instructor / Evaluador"
+                : props.missionType === "Inspección"
+                ? "Inspector de Vuelo"
                 : props.missionType === "HEMS"
                 ? "Piloto HEMS"
                 : "Comandante (PIC)"}
@@ -135,13 +137,17 @@ export function FratPdfDocument(props: FratPdfProps) {
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>
-              {props.type === "TRAINING"
+              {props.sicName === "N/A - Vuelo Monopiloto"
+                ? "Modalidad"
+                : props.missionType === "Entrenamiento" || props.type === "TRAINING"
                 ? "Piloto en Instrucción"
+                : props.missionType === "Inspección"
+                ? "Piloto Inspeccionado"
                 : props.missionType === "HEMS"
                 ? "Técnico Operativo (TFO) / Copiloto"
-                : "Copiloto / TFO"}
+                : "Copiloto (SIC)"}
             </Text>
-            <Text style={styles.infoValue}>{props.sicName || "N/A"}</Text>
+            <Text style={styles.infoValue}>{props.sicName || "N/A - Vuelo Monopiloto"}</Text>
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>Ruta</Text>
@@ -196,7 +202,13 @@ export function FratPdfDocument(props: FratPdfProps) {
         ) : null}
 
         <View style={styles.signRow}>
-          <Text style={styles.signBox}>{props.picName || "Firma Comandante (PIC)"}</Text>
+          <View style={{ width: "45%", alignItems: "center" }}>
+            {props.picSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image, not an HTML <img>
+              <Image src={props.picSignature} style={{ width: 120, height: 35, marginBottom: 4 }} />
+            ) : null}
+            <Text style={styles.signBox}>{props.picName || "Firma Comandante (PIC)"}</Text>
+          </View>
           <Text style={styles.signBox}>Dirección de Operaciones / SMS</Text>
         </View>
 

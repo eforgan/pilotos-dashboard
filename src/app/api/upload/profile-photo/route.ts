@@ -1,16 +1,27 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const pilotId = formData.get("pilotId") as string;
 
     if (!file || !pilotId) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+    }
+
+    const u = session.user as { role?: string; pilotId?: string | null };
+    if (u.role !== "ADMIN" && u.pilotId !== pilotId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
     const bytes = await file.arrayBuffer();

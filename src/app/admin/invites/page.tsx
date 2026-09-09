@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Pilot, COMPANY_BASES } from "@/lib/types";
+import { Pilot } from "@/lib/types";
 import { getPilots, filterByAircraft } from "@/lib/utils";
-import { Copy, Check, ExternalLink, ShieldCheck, MessageSquare, Mail, Sparkles, Plus, Trash2, X, Loader2, UserPlus, Users, Send, Filter, Layers, Plane, MapPin } from "lucide-react";
+import { Copy, Check, ExternalLink, ShieldCheck, MessageSquare, Mail, Sparkles, Trash2, X, Loader2, UserPlus, Users, Send, Filter, Plane, MapPin } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 

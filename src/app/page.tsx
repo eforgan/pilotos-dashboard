@@ -18,6 +18,7 @@ import {
 import { Pilot } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CalendarView from "@/components/CalendarView";
 import ExcelExportButton from "@/components/ExcelExportButton";
@@ -25,6 +26,7 @@ import BaseCoverageMatrix from "@/components/BaseCoverageMatrix";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [pilots, setPilots] = useState<Pilot[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,6 +38,17 @@ export default function DashboardPage() {
   const [aircraftFilter, setAircraftFilter] = useState("all");
 
   useEffect(() => {
+    // Restrict global dashboard to Super Admin (role === "ADMIN")
+    if (session?.user && session.user.role !== "ADMIN") {
+      const user = session.user as { role?: string; pilotId?: string | null };
+      if (user.pilotId) {
+        router.replace(`/pilot/${user.pilotId}`);
+      } else {
+        router.replace("/frat");
+      }
+      return;
+    }
+
     async function loadData() {
       try {
         const data = await getPilots();
@@ -47,7 +60,7 @@ export default function DashboardPage() {
       }
     }
     loadData();
-  }, []);
+  }, [session, router]);
 
   const summary = useMemo(() => {
     if (!pilots.length) return null;

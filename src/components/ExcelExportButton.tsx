@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, FileSpreadsheet, Check } from "lucide-react";
+import { FileSpreadsheet, Check } from "lucide-react";
 import { Pilot } from "@/lib/types";
 import { getPilotOverallStatus, getPilotAircraft } from "@/lib/utils";
 

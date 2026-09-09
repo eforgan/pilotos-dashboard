@@ -33,10 +33,10 @@ export interface Pilot {
   imageUrl?: string | null;
   inviteToken?: string | null;
   user?: { id: string; email: string; role: string } | null;
-  documents?: { id: string; type: string; fileUrl: string; fileName: string; pilotId: string; createdAt: Date | string; updatedAt: Date | string; verified?: boolean }[]; // Simplified for now
+  documents?: { id: string; type: string; fileUrl: string; fileName: string; pilotId: string; createdAt: Date | string; updatedAt: Date | string; verified?: boolean }[];
 }
 
-export const AIRCRAFT_MODELS = ["AW109", "BO105", "RH44", "BN2B"] as const;
+export const AIRCRAFT_MODELS = ["AW109", "AW109SP", "AW109E", "AW109C", "BO105", "RH44", "BN2B", "BN2N"] as const;
 export type AircraftModel = typeof AIRCRAFT_MODELS[number];
 
 export const MISSION_TYPES = [
@@ -49,6 +49,21 @@ export const MISSION_TYPES = [
   "Transporte Carga",
 ] as const;
 export type MissionType = typeof MISSION_TYPES[number];
+
+export interface CrewModalityItem {
+  id: "SOLO" | "PILOT_COPILOT" | "PILOT_TFO" | "INSTRUCTOR_STUDENT" | "INSPECTOR_EVALUATED";
+  label: string;
+  hemsOnly?: boolean;
+}
+
+export const CREW_MODALITIES: readonly CrewModalityItem[] = [
+  { id: "SOLO", label: "Piloto Solo (Monopiloto)" },
+  { id: "PILOT_COPILOT", label: "Piloto y Copiloto" },
+  { id: "PILOT_TFO", label: "Piloto y Técnico Operativo (TFO)", hemsOnly: true },
+  { id: "INSTRUCTOR_STUDENT", label: "Instructor y Piloto en Instrucción" },
+  { id: "INSPECTOR_EVALUATED", label: "Inspector y Piloto Inspeccionado" },
+];
+export type CrewModality = CrewModalityItem["id"];
 
 export type AlertLevel = "critical" | "warning" | "caution" | "ok" | "na";
 
@@ -103,31 +118,42 @@ export const FIELD_CATEGORIES = {
   safety: { label: "Seguridad", color: "#10b981", icon: "Shield" },
 } as const;
 
+export interface FleetAircraft {
+  model: string;
+  tailNumber: string;
+}
+
 export interface BaseContract {
   id: string;
   name: string;
   client: string;
   location: string;
-  fleetRequired: { model: AircraftModel; count: number }[];
+  fleetRequired: { model: string; count: number }[];
+  assignedAircraft: FleetAircraft[];
   description: string;
 }
 
 export const COMPANY_BASES: BaseContract[] = [
   {
-    id: "nunez",
-    name: "Base Núñez",
-    client: "SAME AÉREO",
-    location: "Buenos Aires (Núñez)",
+    id: "sierra_grande",
+    name: "Base Sierra Grande",
+    client: "YPF Vmos",
+    location: "Sierra Grande (Río Negro)",
     fleetRequired: [{ model: "BO105", count: 1 }],
-    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7 operando con 1 BO105."
+    assignedAircraft: [{ model: "BO105", tailNumber: "LV-CSM" }],
+    description: "Contrato con YPF Vmos operando con helicóptero BO105 (LV-CSM)."
   },
   {
-    id: "rosario",
-    name: "Base Rosario",
-    client: "UTV",
-    location: "Aeropuerto de Rosario (SAAR)",
-    fleetRequired: [{ model: "BO105", count: 1 }],
-    description: "Contrato con UTV Emergencias desde el Aeropuerto de Rosario."
+    id: "brm",
+    name: "Base BRM",
+    client: "BRM",
+    location: "Bahía Rincón / BRM",
+    fleetRequired: [{ model: "AW109SP", count: 2 }],
+    assignedAircraft: [
+      { model: "AW109SP", tailNumber: "LV-WLO" },
+      { model: "AW109SP", tailNumber: "LV-WLP" }
+    ],
+    description: "Operaciones de la base BRM equipada con 2 helicópteros AgustaWestland AW109SP (LV-WLO y LV-WLP)."
   },
   {
     id: "neuquen",
@@ -135,26 +161,47 @@ export const COMPANY_BASES: BaseContract[] = [
     client: "Vista Energy",
     location: "Neuquén (Vaca Muerta)",
     fleetRequired: [
-      { model: "BO105", count: 1 },
-      { model: "AW109", count: 1 }
+      { model: "AW109E", count: 1 },
+      { model: "BO105", count: 1 }
     ],
-    description: "Contrato con Vista Energy para operaciones con 1 BO105 y 1 AW109."
+    assignedAircraft: [
+      { model: "AW109E", tailNumber: "LV-KCR" },
+      { model: "BO105", tailNumber: "LV-GID" }
+    ],
+    description: "Contrato con Vista Energy operando con AW109E (LV-KCR) y BO105 (LV-GID)."
   },
   {
-    id: "cabo_virgenes",
-    name: "Base Cabo Vírgenes",
-    client: "PSM",
-    location: "Cabo Vírgenes (Santa Cruz)",
-    fleetRequired: [{ model: "AW109", count: 2 }],
-    description: "Contrato con PSM operando con 2 helicópteros AW109SP."
+    id: "don_torcuato",
+    name: "Base Don Torcuato",
+    client: "Mantenimiento / Operativa",
+    location: "Don Torcuato (Buenos Aires)",
+    fleetRequired: [
+      { model: "AW109E", count: 1 },
+      { model: "AW109C", count: 1 }
+    ],
+    assignedAircraft: [
+      { model: "AW109E", tailNumber: "LV-KNS" },
+      { model: "AW109C", tailNumber: "LV-WAE" }
+    ],
+    description: "Base operativa y centro técnico operando con AW109E (LV-KNS) y AW109C (LV-WAE)."
   },
   {
-    id: "sierra_grande",
-    name: "Base Sierra Grande",
-    client: "YPF Vmos",
-    location: "Sierra Grande (Río Negro)",
+    id: "nunez",
+    name: "Base Núñez",
+    client: "SAME AÉREO",
+    location: "Buenos Aires (Núñez / HEMS)",
     fleetRequired: [{ model: "BO105", count: 1 }],
-    description: "Contrato con YPF Vmos operando con 1 BO105."
+    assignedAircraft: [{ model: "BO105", tailNumber: "LV-FKS" }],
+    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7 operando con BO105 (LV-FKS)."
+  },
+  {
+    id: "rosario",
+    name: "Base Rosario",
+    client: "UTV Emergencias",
+    location: "Aeropuerto de Rosario (SAAR)",
+    fleetRequired: [{ model: "BO105", count: 1 }],
+    assignedAircraft: [{ model: "BO105", tailNumber: "LV-GIE" }],
+    description: "Contrato con UTV Emergencias desde el Aeropuerto de Rosario operando con BO105 (LV-GIE)."
   },
   {
     id: "calafate",
@@ -162,9 +209,13 @@ export const COMPANY_BASES: BaseContract[] = [
     client: "Solo Patagonia",
     location: "El Calafate (SAWC)",
     fleetRequired: [
-      { model: "BN2B", count: 1 },
+      { model: "BN2N", count: 1 },
       { model: "RH44", count: 1 }
     ],
-    description: "Contrato con Solo Patagonia operando 1 avión BN2B y 1 helicóptero RH44."
+    assignedAircraft: [
+      { model: "BN2N", tailNumber: "LV-WFR" },
+      { model: "RH44", tailNumber: "LV-CCV" }
+    ],
+    description: "Contrato con Solo Patagonia operando avión BN2N (LV-WFR) y helicóptero RH44 (LV-CCV)."
   }
 ];

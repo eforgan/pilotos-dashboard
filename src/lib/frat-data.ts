@@ -263,15 +263,19 @@ export const TRAINING_FRAT: FratSheet = {
       items: [
         {
           id: "t_ac_maintenance",
-          label: "Mantenimiento Reciente Realizado",
+          label: "Mantenimiento Reciente / Salida de Inspección",
           options: [
-            { score: 0, label: "Más de 10 horas de vuelo desde el último mantenimiento." },
+            { score: 0, label: "Más de 10 horas de vuelo desde el último mantenimiento/inspección." },
             {
               score: 1,
-              label: "Entre 5 y 10 horas de vuelo desde el último mantenimiento.",
-              mitigation: "Verificar maniobras básicas, motor y embrague antes de comenzar la instrucción.",
+              label: "Entre 5 y 10 horas de vuelo desde el último mantenimiento/inspección.",
+              mitigation: "Verificar maniobras básicas, chequeo de motor y embrague antes de la instrucción.",
             },
-            { score: 2, label: "Menos de 5 horas desde el último mantenimiento.", mitigation: "No realizar vuelos de instrucción." },
+            {
+              score: 2,
+              label: "⚠️ ALTO RIESGO: Helicóptero recién salido de inspección / Mantenimiento mayor (< 5 hs de vuelo).",
+              mitigation: "¡PROTOCOLO OBLIGATORIO SMS DE ALTO RIESGO! No volar sin vuelo de verificación funcional previo sin pasajeros, chequeo completo y autorización escrita de Mantenimiento.",
+            },
           ],
         },
         {
@@ -666,11 +670,15 @@ export const DAILY_OPS_FRAT: FratSheet = {
       items: [
         {
           id: "d_ac_maintenance",
-          label: "Mantenimiento Reciente Realizado",
+          label: "Mantenimiento Reciente / Salida de Inspección",
           options: [
-            { score: 0, label: "Más de 10 horas de vuelo desde el último mantenimiento." },
-            { score: 1, label: "Entre 5 y 10 horas desde el último mantenimiento.", mitigation: "Vuelo diurno o elevar mínimos meteorológicos nocturnos." },
-            { score: 2, label: "Menos de 5 horas desde el último mantenimiento.", mitigation: "No transportar pasajeros." },
+            { score: 0, label: "Más de 10 horas de vuelo desde el último mantenimiento/inspección." },
+            { score: 1, label: "Entre 5 y 10 horas desde el último mantenimiento/inspección.", mitigation: "Vuelo diurno o elevar mínimos meteorológicos nocturnos." },
+            {
+              score: 2,
+              label: "⚠️ ALTO RIESGO: Helicóptero recién salido de inspección / Mantenimiento mayor (< 5 hs de vuelo).",
+              mitigation: "¡PROTOCOLO OBLIGATORIO SMS DE ALTO RIESGO! No transportar pasajeros. Requiere vuelo de verificación/prueba funcional previo y autorización explícita de la Jefatura de Mantenimiento.",
+            },
           ],
         },
         {
@@ -995,20 +1003,39 @@ export function computeFratScore(sheet: FratSheet, responses: FratResponses): Fr
   let finalScore = 0;
   let answered = 0;
 
+  let hasRecentInspectionInitial = false;
+  let hasRecentInspectionFinal = false;
+
   for (const item of items) {
     const r = responses[item.id];
     if (!r) continue;
     answered += 1;
     initialScore += r.initial;
     finalScore += r.final;
+
+    // SMS RULE: Helicopter recently out of inspection (< 5h post-inspection) is automatically HIGH_RISK
+    if (item.id === "t_ac_maintenance" || item.id === "d_ac_maintenance") {
+      if (r.initial === 2) hasRecentInspectionInitial = true;
+      if (r.final === 2) hasRecentInspectionFinal = true;
+    }
+  }
+
+  let initialLevel = riskLevelFor(initialScore, max);
+  let finalLevel = riskLevelFor(finalScore, max);
+
+  if (hasRecentInspectionInitial) {
+    initialLevel = "HIGH_RISK";
+  }
+  if (hasRecentInspectionFinal) {
+    finalLevel = "HIGH_RISK";
   }
 
   return {
     max,
     initialScore,
     finalScore,
-    initialLevel: riskLevelFor(initialScore, max),
-    finalLevel: riskLevelFor(finalScore, max),
+    initialLevel,
+    finalLevel,
     answered,
     total: items.length,
     missing: items.length - answered,

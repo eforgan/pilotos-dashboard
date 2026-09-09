@@ -10,14 +10,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      String   @default("PILOT") // "ADMIN" or "PILOT"
-  pilotId   String?  @unique
-  pilot     Pilot?   @relation(fields: [pilotId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  password           String
+  role               String   @default("PILOT") // "ADMIN" or "PILOT"
+  mustChangePassword Boolean  @default(true)
+  pilotId            String?  @unique
+  pilot              Pilot?   @relation(fields: [pilotId], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   fratForms FratForm[]
 }
@@ -106,6 +107,7 @@ model FratForm {
   route          String?
   etd            String?
   missionType    String?
+  crewModality   String?
 
   // { [itemId]: { initial: 0|1|2, final: 0|1|2, mitigation?: string } }
   responses      Json
@@ -118,6 +120,7 @@ model FratForm {
 
   generalNotes   String?
   decision       String?
+  picSignature   String?
 
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt

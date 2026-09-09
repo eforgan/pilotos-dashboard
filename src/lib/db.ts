@@ -11,9 +11,12 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    "postgresql://neondb_owner:npg_YlxtfsAoD1M4@ep-little-morning-a4qh58zw-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require";
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL no está configurada. Definila en el entorno (.env / variables de Vercel) antes de iniciar la aplicación."
+    );
+  }
   const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({ adapter });
 }

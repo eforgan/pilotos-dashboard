@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { checkAndNotify, sendNotification } from "@/lib/notifications";
 
 export async function POST() {
   try {
+    const session = await auth();
+    if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     const queue = await checkAndNotify();
     
     // In test mode, we just return the queue

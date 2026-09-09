@@ -13,6 +13,7 @@ import {
   Loader2,
   Plane,
   Radio,
+  AlertTriangle,
 } from "lucide-react";
 import {
   FratResponses,
@@ -20,9 +21,10 @@ import {
   computeFratScore,
   getFratSheet,
 } from "@/lib/frat-data";
-import { COMPANY_BASES, AIRCRAFT_MODELS, MISSION_TYPES } from "@/lib/types";
+import { COMPANY_BASES, AIRCRAFT_MODELS, MISSION_TYPES, CREW_MODALITIES, CrewModality } from "@/lib/types";
 import FratStepItem from "./FratStepItem";
 import FratScoreBar from "./FratScoreBar";
+import SignaturePad from "./SignaturePad";
 
 interface PilotOption {
   id: string;
@@ -70,6 +72,8 @@ export default function FratWizard() {
   const [route, setRoute] = useState("");
   const [etd, setEtd] = useState("");
   const [missionType, setMissionType] = useState<string>(MISSION_TYPES[0]);
+  const [crewModality, setCrewModality] = useState<CrewModality>("PILOT_COPILOT");
+  const [picSignature, setPicSignature] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/pilots")
@@ -92,7 +96,50 @@ export default function FratWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pilotId, pilots]);
 
-  const sheet = fratType ? getFratSheet(fratType) : null;
+  const handleMissionTypeChange = (newMission: string) => {
+    setMissionType(newMission);
+    if (newMission !== "HEMS" && crewModality === "PILOT_TFO") {
+      setCrewModality("PILOT_COPILOT");
+      if (sicName === "N/A - Vuelo Monopiloto") setSicName("");
+    }
+    if (newMission === "Entrenamiento") {
+      setCrewModality("INSTRUCTOR_STUDENT");
+      if (fratType !== "TRAINING") {
+        setFratType("TRAINING");
+        setResponses({});
+      }
+    } else if (newMission === "Inspección") {
+      setCrewModality("INSPECTOR_EVALUATED");
+      if (fratType !== "TRAINING") {
+        setFratType("TRAINING");
+        setResponses({});
+      }
+    }
+  };
+
+  const handleCrewModalityChange = (newModality: CrewModality) => {
+    setCrewModality(newModality);
+    if (newModality === "SOLO") {
+      setSicName("N/A - Vuelo Monopiloto");
+    } else if (sicName === "N/A - Vuelo Monopiloto") {
+      setSicName("");
+    }
+
+    if (newModality === "INSTRUCTOR_STUDENT" || newModality === "INSPECTOR_EVALUATED") {
+      if (fratType !== "TRAINING") {
+        setFratType("TRAINING");
+        setResponses({});
+      }
+    }
+  };
+
+  const effectiveFratType: FratType = fratType || (
+    missionType === "Entrenamiento" || missionType === "Inspección" || crewModality === "INSTRUCTOR_STUDENT" || crewModality === "INSPECTOR_EVALUATED"
+      ? "TRAINING"
+      : "DAILY_OPS"
+  );
+
+  const sheet = getFratSheet(effectiveFratType);
   const score = useMemo(() => (sheet ? computeFratScore(sheet, responses) : null), [sheet, responses]);
 
   const steps = useMemo(() => {
@@ -131,19 +178,21 @@ export default function FratWizard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: fratType,
+          type: effectiveFratType,
           pilotId: pilotId || null,
           flightDate,
           base,
           aircraft,
           picName,
-          sicName,
+          sicName: crewModality === "SOLO" ? "N/A - Vuelo Monopiloto" : sicName,
           route,
           etd,
           missionType,
+          crewModality,
           responses,
           generalNotes,
           decision,
+          picSignature,
         }),
       });
       const data = await res.json();
@@ -204,7 +253,33 @@ export default function FratWizard() {
         </div>
       </div>
 
-      {sheet && score && step >= 1 && <FratScoreBar score={score} />}
+      {sheet && score && step >= 1 && (
+        <>
+          {(responses["t_ac_maintenance"]?.initial === 2 ||
+            responses["t_ac_maintenance"]?.final === 2 ||
+            responses["d_ac_maintenance"]?.initial === 2 ||
+            responses["d_ac_maintenance"]?.final === 2) && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6 p-4 rounded-2xl bg-red-500/10 border-2 border-red-500/40 text-red-900 dark:text-red-200 font-bold text-xs flex items-center gap-3 shadow-md"
+            >
+              <div className="p-2.5 rounded-xl bg-red-600 text-white shrink-0 shadow-sm">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="font-black text-sm uppercase tracking-wider block text-red-600 dark:text-red-400">
+                  ⚠️ ALERTA SMS: HELICÓPTERO RECIÉN SALIDO DE INSPECCIÓN (ALTO RIESGO)
+                </span>
+                <p className="mt-0.5 font-semibold text-slate-700 dark:text-slate-300 leading-normal">
+                  Por protocolo de seguridad operacional EHSIT / SMS, toda aeronave recién salida de mantenimiento o inspección (&lt; 5 horas de vuelo) se clasifica automáticamente como <strong>ALTO RIESGO (HIGH RISK)</strong>. Requiere vuelo de verificación/prueba previo sin pasajeros y autorización de Mantenimiento.
+                </p>
+              </div>
+            </motion.div>
+          )}
+          <FratScoreBar score={score} />
+        </>
+      )}
 
       <motion.div
         key={step}
@@ -245,9 +320,48 @@ export default function FratWizard() {
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <Radio className="w-5 h-5 text-blue-600" />
                 <h3 className="text-base font-black uppercase text-slate-950 dark:text-white">
-                  Datos del vuelo — {sheet.title}
+                  Configuración y Datos del Vuelo — {sheet.title}
                 </h3>
               </div>
+
+              {/* 1. SELECCIÓN DE MISIÓN Y MODALIDAD DE TRIPULACIÓN */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    1º Tipo de misión *
+                  </label>
+                  <select
+                    value={missionType}
+                    onChange={(e) => handleMissionTypeChange(e.target.value)}
+                    className="input-field bg-white dark:bg-slate-900 font-bold"
+                  >
+                    {MISSION_TYPES.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    2º Modalidad de tripulación *
+                  </label>
+                  <select
+                    value={crewModality}
+                    onChange={(e) => handleCrewModalityChange(e.target.value as CrewModality)}
+                    className="input-field bg-white dark:bg-slate-900 font-bold"
+                  >
+                    {CREW_MODALITIES.filter((cm) => !cm.hemsOnly || missionType === "HEMS").map((cm) => (
+                      <option key={cm.id} value={cm.id}>
+                        {cm.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 2. DATOS GENERALES DEL VUELO */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase mb-1">Fecha del vuelo *</label>
@@ -279,177 +393,131 @@ export default function FratWizard() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">Ruta</label>
+                  <input type="text" value={route} onChange={(e) => setRoute(e.target.value)} placeholder="ej. SABB - SAZR" className="input-field" />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">ETD</label>
+                  <input type="time" value={etd} onChange={(e) => setEtd(e.target.value)} className="input-field" />
+                </div>
               </div>
 
+              {/* 3. INTEGRANTES DE LA TRIPULACIÓN */}
               <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <p className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                  Tripulación del Vuelo
+                  Integrantes de la Tripulación ({CREW_MODALITIES.find((cm) => cm.id === crewModality)?.label})
                 </p>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {sheet.type === "TRAINING" ? (
-                    <>
-                      {/* Box 1: Instructor / Inspector */}
-                      <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          Instructor / Inspector / Evaluador *
-                        </label>
-                        <div className="space-y-2">
-                          <select
-                            onChange={(e) => {
-                              const p = pilots.find((x) => x.id === e.target.value);
-                              if (p) setPicName(p.PILOTO);
-                            }}
-                            className="input-field bg-white dark:bg-slate-900 text-xs"
-                          >
-                            <option value="">Seleccionar Instructor de la lista...</option>
-                            {pilots.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.PILOTO}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={picName}
-                            onChange={(e) => setPicName(e.target.value)}
-                            placeholder="Nombre del Instructor / Inspector *"
-                            className="input-field"
-                          />
-                        </div>
-                      </div>
+                  {/* BOX 1 */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                      {crewModality === "SOLO"
+                        ? "Piloto Solo / Comandante (PIC) *"
+                        : crewModality === "PILOT_COPILOT"
+                        ? "Comandante (PIC) / Piloto a Cargo *"
+                        : crewModality === "PILOT_TFO"
+                        ? "Piloto / Comandante HEMS *"
+                        : crewModality === "INSTRUCTOR_STUDENT"
+                        ? "Instructor de Vuelo *"
+                        : "Inspector de Vuelo *"}
+                    </label>
+                    <div className="space-y-2">
+                      <select
+                        disabled={!isAdmin}
+                        onChange={(e) => {
+                          const p = pilots.find((x) => x.id === e.target.value);
+                          if (p) setPicName(p.PILOTO);
+                          if (crewModality !== "INSTRUCTOR_STUDENT" && crewModality !== "INSPECTOR_EVALUATED" && isAdmin) {
+                            setPilotId(e.target.value);
+                          }
+                        }}
+                        className="input-field bg-white dark:bg-slate-900 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={!isAdmin ? "Solo un administrador puede asignar el legajo de otro piloto" : undefined}
+                      >
+                        <option value="">Seleccionar legajo del roster...</option>
+                        {pilots.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.PILOTO}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={picName}
+                        onChange={(e) => setPicName(e.target.value)}
+                        placeholder={
+                          crewModality === "SOLO"
+                            ? "Nombre del Piloto Solo *"
+                            : crewModality === "INSTRUCTOR_STUDENT"
+                            ? "Nombre del Instructor de Vuelo *"
+                            : crewModality === "INSPECTOR_EVALUATED"
+                            ? "Nombre del Inspector de Vuelo *"
+                            : "Nombre del Comandante *"
+                        }
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
 
-                      {/* Box 2: Piloto en Instrucción / Alumno */}
-                      <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          Piloto en Instrucción / Alumno (Legajo)
-                        </label>
-                        <div className="space-y-2">
-                          <select
-                            value={pilotId}
-                            onChange={(e) => {
-                              setPilotId(e.target.value);
-                              const p = pilots.find((x) => x.id === e.target.value);
-                              if (p) setSicName(p.PILOTO);
-                            }}
-                            disabled={!isAdmin}
-                            className="input-field bg-white dark:bg-slate-900 disabled:opacity-60 text-xs"
-                          >
-                            <option value="">Seleccionar Piloto en Instrucción...</option>
-                            {pilots.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.PILOTO}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={sicName}
-                            onChange={(e) => setSicName(e.target.value)}
-                            placeholder="Nombre del Piloto en Instrucción / Alumno"
-                            className="input-field"
-                          />
-                        </div>
-                      </div>
-                    </>
+                  {/* BOX 2 */}
+                  {crewModality === "SOLO" ? (
+                    <div className="flex items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-400 text-center">
+                      Vuelo Monopiloto
+                      <br />
+                      Sin Copiloto / Técnico Operativo
+                    </div>
                   ) : (
-                    <>
-                      {/* Box 1: Comandante (PIC) */}
-                      <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          {missionType === "HEMS" ? "Piloto / Comandante HEMS *" : "Comandante (PIC) / Piloto a Cargo *"}
-                        </label>
-                        <div className="space-y-2">
-                          <select
-                            value={pilotId}
-                            onChange={(e) => {
+                    <div>
+                      <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                        {crewModality === "PILOT_COPILOT"
+                          ? "Copiloto (SIC) / Segundo al Mando"
+                          : crewModality === "PILOT_TFO"
+                          ? "Técnico Operativo (TFO) HEMS"
+                          : crewModality === "INSTRUCTOR_STUDENT"
+                          ? "Piloto en Instrucción *"
+                          : "Piloto Inspeccionado *"}
+                      </label>
+                      <div className="space-y-2">
+                        <select
+                          disabled={!isAdmin}
+                          value={crewModality === "INSTRUCTOR_STUDENT" || crewModality === "INSPECTOR_EVALUATED" ? pilotId : undefined}
+                          onChange={(e) => {
+                            const p = pilots.find((x) => x.id === e.target.value);
+                            if (p) setSicName(p.PILOTO);
+                            if ((crewModality === "INSTRUCTOR_STUDENT" || crewModality === "INSPECTOR_EVALUATED") && isAdmin) {
                               setPilotId(e.target.value);
-                              const p = pilots.find((x) => x.id === e.target.value);
-                              if (p) setPicName(p.PILOTO);
-                            }}
-                            disabled={!isAdmin}
-                            className="input-field bg-white dark:bg-slate-900 disabled:opacity-60 text-xs"
-                          >
-                            <option value="">Vincular con Legajo de Piloto...</option>
-                            {pilots.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.PILOTO}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={picName}
-                            onChange={(e) => setPicName(e.target.value)}
-                            placeholder={missionType === "HEMS" ? "Nombre del Piloto HEMS *" : "Nombre del Comandante (PIC) *"}
-                            className="input-field"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Box 2: Técnico Operativo (TFO) / Copiloto */}
-                      <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          {missionType === "HEMS" ? "Técnico Operativo (TFO) / Copiloto HEMS" : "Copiloto / TFO"}
-                        </label>
-                        <div className="space-y-2">
-                          <select
-                            onChange={(e) => {
-                              const p = pilots.find((x) => x.id === e.target.value);
-                              if (p) setSicName(p.PILOTO);
-                            }}
-                            className="input-field bg-white dark:bg-slate-900 text-xs"
-                          >
-                            <option value="">
-                              {missionType === "HEMS"
-                                ? "Seleccionar Técnico Operativo / Copiloto..."
-                                : "Seleccionar Copiloto de la lista..."}
-                            </option>
-                            {pilots.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.PILOTO}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="text"
-                            value={sicName}
-                            onChange={(e) => setSicName(e.target.value)}
-                            placeholder={
-                              missionType === "HEMS"
-                                ? "Nombre del Técnico Operativo (TFO) o Copiloto"
-                                : "Nombre del Copiloto / TFO (opcional)"
                             }
-                            className="input-field"
-                          />
-                        </div>
+                          }}
+                          className="input-field bg-white dark:bg-slate-900 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={!isAdmin ? "Solo un administrador puede asignar el legajo de otro piloto" : undefined}
+                        >
+                          <option value="">Seleccionar legajo del roster...</option>
+                          {pilots.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.PILOTO}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={sicName === "N/A - Vuelo Monopiloto" ? "" : sicName}
+                          onChange={(e) => setSicName(e.target.value)}
+                          placeholder={
+                            crewModality === "PILOT_COPILOT"
+                              ? "Nombre del Copiloto"
+                              : crewModality === "PILOT_TFO"
+                              ? "Nombre del Técnico Operativo (TFO)"
+                              : crewModality === "INSTRUCTOR_STUDENT"
+                              ? "Nombre del Piloto en Instrucción"
+                              : "Nombre del Piloto Inspeccionado"
+                          }
+                          className="input-field"
+                        />
                       </div>
-                    </>
+                    </div>
                   )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">Tipo de misión</label>
-                    <select
-                      value={missionType}
-                      onChange={(e) => setMissionType(e.target.value)}
-                      className="input-field bg-white dark:bg-slate-900"
-                    >
-                      {MISSION_TYPES.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">Ruta</label>
-                    <input type="text" value={route} onChange={(e) => setRoute(e.target.value)} placeholder="ej. SABB - SAZR" className="input-field" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">ETD</label>
-                    <input type="time" value={etd} onChange={(e) => setEtd(e.target.value)} className="input-field" />
-                  </div>
                 </div>
               </div>
             </div>
@@ -560,6 +628,9 @@ export default function FratWizard() {
                     </p>
                   </div>
                 )}
+                <div>
+                  <SignaturePad onSave={(sig) => setPicSignature(sig)} initialSignature={picSignature} />
+                </div>
                 {submitError && (
                   <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700 text-xs font-bold text-red-700 dark:text-red-300">
                     {submitError}

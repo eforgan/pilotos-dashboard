@@ -2,6 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import bcrypt from "bcryptjs";
+import { db } from "./lib/db";
+import { sanitizeDni, isAdminDni, findPilotByDni } from "./lib/dni";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -11,37 +13,75 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
-          // DIRECT NEON BYPASS: Using the direct driver to ensure connection works in production
-          const { neon } = await import("@neondatabase/serverless");
-          const connectionString = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_YlxtfsAoD1M4@ep-little-morning-a4qh58zw-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require";
-          const sql = neon(connectionString);
-          
-          console.log("[AUTH_DEBUG] Attempting direct lookup for:", credentials.email);
-          const results = await sql`SELECT * FROM "User" WHERE email = ${credentials.email} LIMIT 1`;
-          const user = results[0] as { id: string; email: string; name: string; role: string; password: string; pilotId: string | null };
+          const rawInput = String(credentials.email).trim();
+          const cleanDni = sanitizeDni(rawInput);
+          const rawPassword = String(credentials.password).trim();
+          const cleanPassword = sanitizeDni(rawPassword);
 
-          if (!user) {
-            console.log("[AUTH_DEBUG] User not found via direct SQL");
-            return null;
+          const existingUser = await db.user.findFirst({
+            where: {
+              OR: [
+                { email: rawInput },
+                { email: cleanDni },
+                { email: `${cleanDni}@modena.com` },
+                { pilot: { DNI: cleanDni } },
+              ],
+            },
+            include: { pilot: { select: { PILOTO: true } } },
+          });
+
+          // FIRST LOGIN AUTO-PROVISIONING: no User account yet, but a Pilot
+          // exists for this DNI and the submitted password equals the DNI.
+          if (!existingUser && cleanDni.length >= 6) {
+            const pilot = await findPilotByDni(db, cleanDni);
+
+            if (pilot && cleanPassword === cleanDni) {
+              const hashedPassword = await bcrypt.hash(cleanPassword, 10);
+              const userEmail =
+                pilot.EMAIL && pilot.EMAIL.trim() !== "" ? pilot.EMAIL.trim() : `${cleanDni}@modena.com`;
+              const role = isAdminDni(cleanDni) ? "ADMIN" : "PILOT";
+
+              const createdUser = await db.user.create({
+                data: {
+                  email: userEmail,
+                  password: hashedPassword,
+                  role,
+                  mustChangePassword: true,
+                  pilotId: pilot.id,
+                },
+              });
+
+              return {
+                id: createdUser.id,
+                email: createdUser.email,
+                name: pilot.PILOTO,
+                role: createdUser.role,
+                pilotId: createdUser.pilotId,
+                mustChangePassword: true,
+              };
+            }
           }
 
-          console.log("[AUTH_DEBUG] User found. ID:", user.id);
+          if (!existingUser) return null;
 
-          const isValid = await bcrypt.compare(credentials.password as string, user.password);
-          console.log("[AUTH_DEBUG] Password valid?", isValid);
+          const isValid = await bcrypt.compare(rawPassword, existingUser.password);
+          // Allow the initial DNI-as-password match while it hasn't been changed yet.
+          const isValidCleanDni =
+            !isValid && cleanPassword === cleanDni && (await bcrypt.compare(cleanDni, existingUser.password));
 
-          if (!isValid) return null;
+          if (!isValid && !isValidCleanDni) return null;
 
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            pilotId: user.pilotId,
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.pilot?.PILOTO || existingUser.email,
+            role: existingUser.role,
+            pilotId: existingUser.pilotId,
+            mustChangePassword: existingUser.mustChangePassword,
           };
         } catch (error: unknown) {
           if (error instanceof Error) {
-            console.error("[AUTH_DEBUG] Authentication crash:", error.message);
+            console.error("[AUTH] Authentication error:", error.message);
           }
           return null;
         }
@@ -50,22 +90,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
-        const u = user as { role?: string; id?: string; email?: string | null; pilotId?: string | null };
+        const u = user as { role?: string; id?: string; email?: string | null; pilotId?: string | null; name?: string | null; mustChangePassword?: boolean };
         if (u.role) token.role = u.role;
         if (u.id) token.id = u.id;
         if (u.email) token.email = u.email;
+        if (u.name) token.name = u.name;
         token.pilotId = u.pilotId ?? null;
+        token.mustChangePassword = u.mustChangePassword ?? false;
       }
+
+      // Allow the client to push updates (e.g. after changing the password)
+      // via useSession().update(...) without forcing a full re-login.
+      if (trigger === "update" && session && typeof session === "object") {
+        const s = session as { mustChangePassword?: boolean };
+        if (typeof s.mustChangePassword === "boolean") {
+          token.mustChangePassword = s.mustChangePassword;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        const u = session.user as { role?: string; id?: string; pilotId?: string | null };
+        const u = session.user as { role?: string; id?: string; pilotId?: string | null; name?: string | null; mustChangePassword?: boolean };
         u.role = token.role as string;
         u.id = token.id as string;
         u.pilotId = (token.pilotId as string | null) ?? null;
+        u.mustChangePassword = (token.mustChangePassword as boolean) ?? false;
+        if (token.name) u.name = token.name as string;
       }
       return session;
     },

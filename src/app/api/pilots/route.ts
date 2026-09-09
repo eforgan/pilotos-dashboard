@@ -4,13 +4,18 @@ import { auth } from "@/auth";
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
     const pilots = await db.pilot.findMany({
       orderBy: { PILOTO: "asc" },
     });
     return NextResponse.json(pilots);
   } catch (error) {
     console.error("Failed to fetch pilots:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 

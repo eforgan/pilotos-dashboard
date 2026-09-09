@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { 
-  Shield, Lock, Mail, CheckCircle, AlertCircle, Loader2, 
-  ArrowRight, User, Phone, MapPin, CreditCard, GraduationCap, 
+import {
+  Shield, Lock, Mail, CheckCircle, AlertCircle, Loader2,
+  User, Phone, MapPin, CreditCard, GraduationCap,
   Plane, Calendar, ShieldCheck, ChevronDown, Check, Sparkles
 } from "lucide-react";
 import Link from "next/link";

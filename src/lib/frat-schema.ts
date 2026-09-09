@@ -19,9 +19,11 @@ export const fratSubmitSchema = z.object({
   route: z.string().optional(),
   etd: z.string().optional(),
   missionType: z.string().optional(),
+  crewModality: z.string().optional(),
   responses: z.record(z.string(), fratResponseValueSchema),
   generalNotes: z.string().optional(),
   decision: z.string().optional(),
+  picSignature: z.string().optional(),
 });
 
 export type FratSubmitInput = z.infer<typeof fratSubmitSchema>;

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { getPilotById, updatePilot } from "@/lib/utils";
 import { Pilot } from "@/lib/types";
 import { 
@@ -18,7 +19,8 @@ import { useRef } from "react";
 
 export default function PilotProfilePage() {
   const { id } = useParams();
-  // const router = useRouter();
+  const router = useRouter();
+  const { data: session } = useSession();
   const reportRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
@@ -30,6 +32,15 @@ export default function PilotProfilePage() {
   const [formData, setFormData] = useState<Partial<Pilot>>({});
 
   useEffect(() => {
+    // Access control: non-admin users can only view their own legajo
+    if (session?.user) {
+      const u = session.user as { role?: string; pilotId?: string | null };
+      if (u.role !== "ADMIN" && u.pilotId && u.pilotId !== id) {
+        router.replace(`/pilot/${u.pilotId}`);
+        return;
+      }
+    }
+
     async function loadPilot() {
       if (!id) return;
       try {
@@ -45,7 +56,7 @@ export default function PilotProfilePage() {
       }
     }
     loadPilot();
-  }, [id]);
+  }, [id, session, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -219,12 +230,13 @@ export default function PilotProfilePage() {
                   onChange={handleInputChange}
                 >
                   <option value="">Seleccionar Base de Operaciones...</option>
-                  <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
-                  <option value="Base Rosario">Base Rosario (UTV)</option>
-                  <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
-                  <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
-                  <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
-                  <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+                  <option value="Base Sierra Grande">Base Sierra Grande (BO105 LV-CSM)</option>
+                  <option value="Base BRM">Base BRM (AW109SP LV-WLO / LV-WLP)</option>
+                  <option value="Base Neuquén">Base Neuquén (AW109E LV-KCR / BO105 LV-GID)</option>
+                  <option value="Base Don Torcuato">Base Don Torcuato (AW109E LV-KNS / AW109C LV-WAE)</option>
+                  <option value="Base Núñez">Base Núñez (SAME AÉREO - BO105 LV-FKS)</option>
+                  <option value="Base Rosario">Base Rosario (UTV - BO105 LV-GIE)</option>
+                  <option value="Base El Calafate">Base El Calafate (Solo Patagonia - BN2N LV-WFR / RH44 LV-CCV)</option>
                 </select>
               </div>
             </div>

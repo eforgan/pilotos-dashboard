@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { getPilots, getPilotExpirations } from "@/lib/utils";
 import { Pilot, ExpirationItem } from "@/lib/types";
-import { AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, User, Calendar, Loader2, Send, BellRing } from "lucide-react";
+import { AlertCircle, ShieldAlert, CheckCircle2, ChevronRight, User, Calendar, Loader2, BellRing } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 interface PilotWithAlerts {
   pilot: Pilot;
@@ -14,13 +16,26 @@ interface PilotWithAlerts {
 }
 
 export default function AlertsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [pilotsData, setPilotsData] = useState<PilotWithAlerts[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "critical" | "warning">("all");
   const [triggering, setTriggering] = useState(false);
   const [notifyResult, setNotifyResult] = useState<string | null>(null);
 
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = role === "ADMIN";
+
   useEffect(() => {
+    if (status === "loading") return;
+
+    // Central de Alertas expone datos de toda la flota: solo para administradores.
+    if (role !== "ADMIN") {
+      router.replace("/");
+      return;
+    }
+
     async function loadData() {
       try {
         const pilots = await getPilots();
@@ -52,7 +67,11 @@ export default function AlertsPage() {
       }
     }
     loadData();
-  }, []);
+  }, [status, role, router]);
+
+  if (status !== "authenticated" || !isAdmin) {
+    return null;
+  }
 
   const totalCriticals = pilotsData.reduce((acc, p) => acc + p.criticals.length, 0);
   const totalWarnings = pilotsData.reduce((acc, p) => acc + p.warnings.length, 0);
