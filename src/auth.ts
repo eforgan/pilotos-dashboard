@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           
           console.log("[AUTH_DEBUG] Attempting direct lookup for:", credentials.email);
           const results = await sql`SELECT * FROM "User" WHERE email = ${credentials.email} LIMIT 1`;
-          const user = results[0] as { id: string; email: string; name: string; role: string; password: string };
+          const user = results[0] as { id: string; email: string; name: string; role: string; password: string; pilotId: string | null };
 
           if (!user) {
             console.log("[AUTH_DEBUG] User not found via direct SQL");
@@ -37,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             role: user.role,
+            pilotId: user.pilotId,
           };
         } catch (error: unknown) {
           if (error instanceof Error) {
@@ -51,18 +52,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async jwt({ token, user }) {
       if (user) {
-        const u = user as { role?: string; id?: string; email?: string | null };
+        const u = user as { role?: string; id?: string; email?: string | null; pilotId?: string | null };
         if (u.role) token.role = u.role;
         if (u.id) token.id = u.id;
         if (u.email) token.email = u.email;
+        token.pilotId = u.pilotId ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        const u = session.user as { role?: string; id?: string };
+        const u = session.user as { role?: string; id?: string; pilotId?: string | null };
         u.role = token.role as string;
         u.id = token.id as string;
+        u.pilotId = (token.pilotId as string | null) ?? null;
       }
       return session;
     },

@@ -42,7 +42,7 @@ const Sidebar = () => {
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Alertas ANAC", href: "/alerts", icon: Bell },
-    { name: "Matriz Riesgo FRAT", href: "/frat", icon: FileCheck },
+    { name: "FRAT", href: "/frat", icon: FileCheck },
     { name: "Logbook & Horas", href: "/logbook", icon: Clock },
     { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
   ];

@@ -18,6 +18,8 @@ model User {
   pilot     Pilot?   @relation(fields: [pilotId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  fratForms FratForm[]
 }
 
 model Pilot {
@@ -58,7 +60,8 @@ model Pilot {
   inviteToken     String?  @unique
   user            User?
   documents       Document[]
-  
+  fratForms       FratForm[]
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -73,5 +76,53 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   verified  Boolean  @default(false)
+}
+
+enum FratType {
+  TRAINING
+  DAILY_OPS
+}
+
+enum FratRiskLevel {
+  ACCEPTABLE
+  CAUTION
+  HIGH_RISK
+}
+
+model FratForm {
+  id             String        @id @default(cuid())
+  type           FratType
+
+  pilotId        String?
+  pilot          Pilot?        @relation(fields: [pilotId], references: [id])
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+
+  flightDate     DateTime
+  base           String?
+  aircraft       String?
+  picName        String
+  sicName        String?
+  route          String?
+  etd            String?
+  missionType    String?
+
+  // { [itemId]: { initial: 0|1|2, final: 0|1|2, mitigation?: string } }
+  responses      Json
+
+  initialScore   Int
+  finalScore     Int
+  maxScore       Int
+  riskLevel      FratRiskLevel
+  finalRiskLevel FratRiskLevel
+
+  generalNotes   String?
+  decision       String?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([pilotId])
+  @@index([flightDate])
 }
 
