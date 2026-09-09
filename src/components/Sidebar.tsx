@@ -54,11 +54,12 @@ const Sidebar = () => {
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 relative">
             {!logoError ? (
-              <Image 
-                src="/logo.png" 
-                alt="Modena Logo" 
+              <Image
+                src="/logo.png"
+                alt="Modena Logo"
                 fill
-                className="object-contain" 
+                sizes="40px"
+                className="object-contain"
                 onError={() => setLogoError(true)}
               />
             ) : (
@@ -83,12 +84,13 @@ const Sidebar = () => {
           <div className="flex flex-col items-center justify-center mb-10">
             <div className="relative w-56 h-24 mb-2">
               {!logoError ? (
-                <Image 
-                    src="/logo.png" 
-                    alt="Modena Logo" 
+                <Image
+                    src="/logo.png"
+                    alt="Modena Logo"
                     fill
                     priority
-                    className="object-contain" 
+                    sizes="224px"
+                    className="object-contain"
                     onError={() => setLogoError(true)}
                 />
               ) : (

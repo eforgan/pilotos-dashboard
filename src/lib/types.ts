@@ -39,6 +39,17 @@ export interface Pilot {
 export const AIRCRAFT_MODELS = ["AW109", "BO105", "RH44", "BN2B"] as const;
 export type AircraftModel = typeof AIRCRAFT_MODELS[number];
 
+export const MISSION_TYPES = [
+  "Traslado",
+  "HEMS",
+  "Entrenamiento",
+  "Inspección",
+  "Mantenimiento",
+  "Transporte Personal",
+  "Transporte Carga",
+] as const;
+export type MissionType = typeof MISSION_TYPES[number];
+
 export type AlertLevel = "critical" | "warning" | "caution" | "ok" | "na";
 
 export interface ExpirationItem {

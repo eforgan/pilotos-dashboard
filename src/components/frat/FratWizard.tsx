@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,7 +20,7 @@ import {
   computeFratScore,
   getFratSheet,
 } from "@/lib/frat-data";
-import { COMPANY_BASES, AIRCRAFT_MODELS } from "@/lib/types";
+import { COMPANY_BASES, AIRCRAFT_MODELS, MISSION_TYPES } from "@/lib/types";
 import FratStepItem from "./FratStepItem";
 import FratScoreBar from "./FratScoreBar";
 
@@ -69,7 +69,7 @@ export default function FratWizard() {
   const [sicName, setSicName] = useState("");
   const [route, setRoute] = useState("");
   const [etd, setEtd] = useState("");
-  const [missionType, setMissionType] = useState("");
+  const [missionType, setMissionType] = useState<string>(MISSION_TYPES[0]);
 
   useEffect(() => {
     fetch("/api/pilots")
@@ -206,14 +206,12 @@ export default function FratWizard() {
 
       {sheet && score && step >= 1 && <FratScoreBar score={score} />}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
-          transition={{ duration: 0.15 }}
-        >
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, x: 12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.15 }}
+      >
           {step === 0 && (
             <div className="space-y-4">
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 text-xs font-bold text-blue-900 dark:text-blue-200">
@@ -283,63 +281,167 @@ export default function FratWizard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">Piloto (legajo)</label>
-                  <select
-                    value={pilotId}
-                    onChange={(e) => setPilotId(e.target.value)}
-                    disabled={!isAdmin}
-                    className="input-field bg-white dark:bg-slate-900 disabled:opacity-60"
-                  >
-                    <option value="">Sin vincular a legajo</option>
-                    {pilots.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.PILOTO}
-                      </option>
-                    ))}
-                  </select>
+              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                  Tripulación del Vuelo
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sheet.type === "TRAINING" ? (
+                    <>
+                      {/* Box 1: Instructor / Inspector */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                          Instructor / Inspector / Evaluador *
+                        </label>
+                        <div className="space-y-2">
+                          <select
+                            onChange={(e) => {
+                              const p = pilots.find((x) => x.id === e.target.value);
+                              if (p) setPicName(p.PILOTO);
+                            }}
+                            className="input-field bg-white dark:bg-slate-900 text-xs"
+                          >
+                            <option value="">Seleccionar Instructor de la lista...</option>
+                            {pilots.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.PILOTO}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={picName}
+                            onChange={(e) => setPicName(e.target.value)}
+                            placeholder="Nombre del Instructor / Inspector *"
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Box 2: Piloto en Instrucción / Alumno */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                          Piloto en Instrucción / Alumno (Legajo)
+                        </label>
+                        <div className="space-y-2">
+                          <select
+                            value={pilotId}
+                            onChange={(e) => {
+                              setPilotId(e.target.value);
+                              const p = pilots.find((x) => x.id === e.target.value);
+                              if (p) setSicName(p.PILOTO);
+                            }}
+                            disabled={!isAdmin}
+                            className="input-field bg-white dark:bg-slate-900 disabled:opacity-60 text-xs"
+                          >
+                            <option value="">Seleccionar Piloto en Instrucción...</option>
+                            {pilots.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.PILOTO}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={sicName}
+                            onChange={(e) => setSicName(e.target.value)}
+                            placeholder="Nombre del Piloto en Instrucción / Alumno"
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Box 1: Comandante (PIC) */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                          Comandante (PIC) / Piloto a Cargo *
+                        </label>
+                        <div className="space-y-2">
+                          <select
+                            value={pilotId}
+                            onChange={(e) => {
+                              setPilotId(e.target.value);
+                              const p = pilots.find((x) => x.id === e.target.value);
+                              if (p) setPicName(p.PILOTO);
+                            }}
+                            disabled={!isAdmin}
+                            className="input-field bg-white dark:bg-slate-900 disabled:opacity-60 text-xs"
+                          >
+                            <option value="">Vincular con Legajo de Piloto...</option>
+                            {pilots.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.PILOTO}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={picName}
+                            onChange={(e) => setPicName(e.target.value)}
+                            placeholder="Nombre del Comandante (PIC) *"
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Box 2: Copiloto / TFO */}
+                      <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1">
+                          Copiloto / TFO
+                        </label>
+                        <div className="space-y-2">
+                          <select
+                            onChange={(e) => {
+                              const p = pilots.find((x) => x.id === e.target.value);
+                              if (p) setSicName(p.PILOTO);
+                            }}
+                            className="input-field bg-white dark:bg-slate-900 text-xs"
+                          >
+                            <option value="">Seleccionar Copiloto de la lista...</option>
+                            {pilots.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.PILOTO}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={sicName}
+                            onChange={(e) => setSicName(e.target.value)}
+                            placeholder="Nombre del Copiloto / TFO (opcional)"
+                            className="input-field"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                    Comandante (PIC) — Nombre *
-                  </label>
-                  <input
-                    type="text"
-                    value={picName}
-                    onChange={(e) => setPicName(e.target.value)}
-                    placeholder="ej. GRASSANO, Matías"
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                    {sheet.type === "TRAINING" ? "Instructor" : "Copiloto / TFO"}
-                  </label>
-                  <input
-                    type="text"
-                    value={sicName}
-                    onChange={(e) => setSicName(e.target.value)}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">Tipo de misión</label>
-                  <input
-                    type="text"
-                    value={missionType}
-                    onChange={(e) => setMissionType(e.target.value)}
-                    placeholder="ej. HEMS, traslado, reconocimiento..."
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">Ruta</label>
-                  <input type="text" value={route} onChange={(e) => setRoute(e.target.value)} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 uppercase mb-1">ETD</label>
-                  <input type="time" value={etd} onChange={(e) => setEtd(e.target.value)} className="input-field" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">Tipo de misión</label>
+                    <select
+                      value={missionType}
+                      onChange={(e) => setMissionType(e.target.value)}
+                      className="input-field bg-white dark:bg-slate-900"
+                    >
+                      {MISSION_TYPES.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">Ruta</label>
+                    <input type="text" value={route} onChange={(e) => setRoute(e.target.value)} placeholder="ej. SABB - SAZR" className="input-field" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase mb-1">ETD</label>
+                    <input type="time" value={etd} onChange={(e) => setEtd(e.target.value)} className="input-field" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -466,8 +568,7 @@ export default function FratWizard() {
               </div>
             </div>
           )}
-        </motion.div>
-      </AnimatePresence>
+      </motion.div>
 
       {!isReviewStep && (
         <div className="flex items-center justify-between mt-6">

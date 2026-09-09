@@ -77,11 +77,15 @@ export const FratPrintable = React.forwardRef<HTMLDivElement, FratPrintableProps
           <p className="font-bold">{form.missionType || "N/A"}</p>
         </div>
         <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase">Comandante (PIC)</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase">
+            {form.type === "TRAINING" ? "Instructor / Inspector" : "Comandante (PIC)"}
+          </p>
           <p className="font-bold">{form.picName}</p>
         </div>
         <div>
-          <p className="text-[10px] font-black text-slate-400 uppercase">Instructor / SIC / Copiloto</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase">
+            {form.type === "TRAINING" ? "Piloto en Instrucción" : "Copiloto / TFO"}
+          </p>
           <p className="font-bold">{form.sicName || "N/A"}</p>
         </div>
         <div>

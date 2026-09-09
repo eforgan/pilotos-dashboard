@@ -62,12 +62,13 @@ export default function LoginPage() {
               className="relative w-40 h-16"
             >
               {!logoError ? (
-                <Image 
-                    src="/logo.png" 
-                    alt="Modena Logo" 
+                <Image
+                    src="/logo.png"
+                    alt="Modena Logo"
                     fill
                     priority
-                    className="object-contain" 
+                    sizes="160px"
+                    className="object-contain"
                     onError={() => setLogoError(true)}
                 />
               ) : (
