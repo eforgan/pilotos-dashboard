@@ -125,13 +125,21 @@ export function FratPdfDocument(props: FratPdfProps) {
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>
-              {props.type === "TRAINING" ? "Instructor / Inspector" : "Comandante (PIC)"}
+              {props.type === "TRAINING"
+                ? "Instructor / Inspector"
+                : props.missionType === "HEMS"
+                ? "Piloto HEMS"
+                : "Comandante (PIC)"}
             </Text>
             <Text style={styles.infoValue}>{props.picName}</Text>
           </View>
           <View style={styles.infoCell}>
             <Text style={styles.infoLabel}>
-              {props.type === "TRAINING" ? "Piloto en Instrucción" : "Copiloto / TFO"}
+              {props.type === "TRAINING"
+                ? "Piloto en Instrucción"
+                : props.missionType === "HEMS"
+                ? "Técnico Operativo (TFO) / Copiloto"
+                : "Copiloto / TFO"}
             </Text>
             <Text style={styles.infoValue}>{props.sicName || "N/A"}</Text>
           </View>

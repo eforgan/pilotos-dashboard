@@ -356,7 +356,7 @@ export default function FratWizard() {
                       {/* Box 1: Comandante (PIC) */}
                       <div>
                         <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          Comandante (PIC) / Piloto a Cargo *
+                          {missionType === "HEMS" ? "Piloto / Comandante HEMS *" : "Comandante (PIC) / Piloto a Cargo *"}
                         </label>
                         <div className="space-y-2">
                           <select
@@ -380,16 +380,16 @@ export default function FratWizard() {
                             type="text"
                             value={picName}
                             onChange={(e) => setPicName(e.target.value)}
-                            placeholder="Nombre del Comandante (PIC) *"
+                            placeholder={missionType === "HEMS" ? "Nombre del Piloto HEMS *" : "Nombre del Comandante (PIC) *"}
                             className="input-field"
                           />
                         </div>
                       </div>
 
-                      {/* Box 2: Copiloto / TFO */}
+                      {/* Box 2: Técnico Operativo (TFO) / Copiloto */}
                       <div>
                         <label className="block text-xs font-black text-slate-500 uppercase mb-1">
-                          Copiloto / TFO
+                          {missionType === "HEMS" ? "Técnico Operativo (TFO) / Copiloto HEMS" : "Copiloto / TFO"}
                         </label>
                         <div className="space-y-2">
                           <select
@@ -399,7 +399,11 @@ export default function FratWizard() {
                             }}
                             className="input-field bg-white dark:bg-slate-900 text-xs"
                           >
-                            <option value="">Seleccionar Copiloto de la lista...</option>
+                            <option value="">
+                              {missionType === "HEMS"
+                                ? "Seleccionar Técnico Operativo / Copiloto..."
+                                : "Seleccionar Copiloto de la lista..."}
+                            </option>
                             {pilots.map((p) => (
                               <option key={p.id} value={p.id}>
                                 {p.PILOTO}
@@ -410,7 +414,11 @@ export default function FratWizard() {
                             type="text"
                             value={sicName}
                             onChange={(e) => setSicName(e.target.value)}
-                            placeholder="Nombre del Copiloto / TFO (opcional)"
+                            placeholder={
+                              missionType === "HEMS"
+                                ? "Nombre del Técnico Operativo (TFO) o Copiloto"
+                                : "Nombre del Copiloto / TFO (opcional)"
+                            }
                             className="input-field"
                           />
                         </div>
