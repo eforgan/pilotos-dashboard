@@ -40,13 +40,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "El nombre del piloto es obligatorio" }, { status: 400 });
     }
 
+    if (!data.EMAIL || typeof data.EMAIL !== "string" || !data.EMAIL.trim().includes("@")) {
+      return NextResponse.json({ error: "El correo electrónico es obligatorio" }, { status: 400 });
+    }
+
     const inviteToken = crypto.randomUUID();
 
     const pilot = await db.pilot.create({
       data: {
         PILOTO: data.PILOTO.trim().toUpperCase(),
         DNI: data.DNI?.trim() || null,
-        EMAIL: data.EMAIL?.trim() || null,
+        EMAIL: data.EMAIL.trim(),
         TELEFONO: data.TELEFONO?.trim() || null,
         BASE: data.BASE?.trim() || null,
         LICENCIA: data.LICENCIA?.trim() || null,

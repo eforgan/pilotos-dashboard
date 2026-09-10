@@ -218,6 +218,10 @@ export default function AdminInvitesPage() {
   const handleCreatePilot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPilot.PILOTO.trim()) return;
+    if (!newPilot.EMAIL.trim() || !newPilot.EMAIL.includes("@")) {
+      alert("El correo electrónico es obligatorio para registrar un piloto.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -704,9 +708,10 @@ export default function AdminInvitesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Correo Electrónico</label>
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase mb-1">Correo Electrónico *</label>
                   <input
                     type="email"
+                    required
                     placeholder="piloto@empresa.com"
                     value={newPilot.EMAIL}
                     onChange={(e) => setNewPilot(prev => ({ ...prev, EMAIL: e.target.value }))}
