@@ -2,6 +2,7 @@ import { db } from "./db";
 import { getPilotExpirations } from "./utils";
 import { Pilot } from "./types";
 import { sendEmail } from "./email";
+import { sendPushToUser } from "./push";
 
 export interface NotificationPayload {
   to: string;
@@ -12,8 +13,9 @@ export interface NotificationPayload {
 
 export async function checkAndNotify() {
   console.log("Starting notification scan...");
-  const pilots = await db.pilot.findMany();
+  const pilots = await db.pilot.findMany({ include: { user: { select: { id: true } } } });
   const notificationsSent: NotificationPayload[] = [];
+  let pushSent = 0;
 
   for (const pilot of pilots) {
     const expirations = getPilotExpirations(pilot as unknown as Pilot);
@@ -35,6 +37,14 @@ export async function checkAndNotify() {
           message: buildExpirationEmailHtml(pilot.PILOTO, "crítica", critical.map(c => ({ label: c.label, days: c.daysRemaining }))),
         });
       }
+      if (pilot.user?.id) {
+        const result = await sendPushToUser(pilot.user.id, {
+          title: "⚠️ Alerta crítica de vencimiento",
+          body: `${critical.length} certificado(s) por vencer en menos de 30 días: ${items}`,
+          url: "/alerts",
+        });
+        pushSent += result.sent;
+      }
     } else if (warning.length > 0) {
       const waMsg = `🔔 AVISO: Hola ${pilot.PILOTO}, tienes ${warning.length} certificados con vencimiento próximo (30-60 días).`;
       if (pilot.TELEFONO) {
@@ -51,7 +61,7 @@ export async function checkAndNotify() {
     }
   }
 
-  console.log(`Scan complete. ${notificationsSent.length} notifications queued.`);
+  console.log(`Scan complete. ${notificationsSent.length} notifications queued, ${pushSent} push notifications sent.`);
   return notificationsSent;
 }
 

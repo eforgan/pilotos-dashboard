@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "@/components/ThemeToggle";
+import PushOptIn from "@/components/PushOptIn";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -139,8 +140,9 @@ const Sidebar = () => {
             })}
           </nav>
 
-          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
             <ThemeToggle />
+            <PushOptIn />
           </div>
         </div>
 
@@ -216,7 +218,8 @@ const Sidebar = () => {
 
                 <div className="mt-auto space-y-4">
                   <ThemeToggle />
-                  <button 
+                  <PushOptIn />
+                  <button
                     onClick={() => signOut()}
                     className="flex items-center gap-3 w-full px-5 py-3.5 text-slate-500 hover:text-red-500 transition-colors font-bold text-sm"
                   >
