@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Tie Tailwind's `dark:` variant to the `.dark` class next-themes toggles on
+   <html> (attribute="class" in Providers.tsx), instead of the default
+   prefers-color-scheme media query. Without this, the in-app Día/Noche
+   toggle and every `dark:` utility class disagree whenever the OS-level
+   color scheme differs from the user's in-app choice, producing mismatched
+   (sometimes illegible) light/dark styling across the same page. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --background: #f8fafc;

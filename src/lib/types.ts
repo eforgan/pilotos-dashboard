@@ -32,7 +32,7 @@ export interface Pilot {
   RO: string;
   imageUrl?: string | null;
   inviteToken?: string | null;
-  user?: { id: string; email: string; role: string } | null;
+  user?: { id: string; email: string; role: string; assignedBase?: string | null } | null;
   documents?: { id: string; type: string; fileUrl: string; fileName: string; pilotId: string; createdAt: Date | string; updatedAt: Date | string; verified?: boolean }[];
 }
 
@@ -118,104 +118,3 @@ export const FIELD_CATEGORIES = {
   safety: { label: "Seguridad", color: "#10b981", icon: "Shield" },
 } as const;
 
-export interface FleetAircraft {
-  model: string;
-  tailNumber: string;
-}
-
-export interface BaseContract {
-  id: string;
-  name: string;
-  client: string;
-  location: string;
-  fleetRequired: { model: string; count: number }[];
-  assignedAircraft: FleetAircraft[];
-  description: string;
-}
-
-export const COMPANY_BASES: BaseContract[] = [
-  {
-    id: "sierra_grande",
-    name: "Base Sierra Grande",
-    client: "YPF Vmos",
-    location: "Sierra Grande (Río Negro)",
-    fleetRequired: [{ model: "BO105", count: 1 }],
-    assignedAircraft: [{ model: "BO105", tailNumber: "LV-CSM" }],
-    description: "Contrato con YPF Vmos operando con helicóptero BO105 (LV-CSM)."
-  },
-  {
-    id: "brm",
-    name: "Base BRM",
-    client: "BRM",
-    location: "Bahía Rincón / BRM",
-    fleetRequired: [{ model: "AW109SP", count: 2 }],
-    assignedAircraft: [
-      { model: "AW109SP", tailNumber: "LV-WLO" },
-      { model: "AW109SP", tailNumber: "LV-WLP" }
-    ],
-    description: "Operaciones de la base BRM equipada con 2 helicópteros AgustaWestland AW109SP (LV-WLO y LV-WLP)."
-  },
-  {
-    id: "neuquen",
-    name: "Base Neuquén",
-    client: "Vista Energy",
-    location: "Neuquén (Vaca Muerta)",
-    fleetRequired: [
-      { model: "AW109E", count: 1 },
-      { model: "BO105", count: 1 }
-    ],
-    assignedAircraft: [
-      { model: "AW109E", tailNumber: "LV-KCR" },
-      { model: "BO105", tailNumber: "LV-GID" }
-    ],
-    description: "Contrato con Vista Energy operando con AW109E (LV-KCR) y BO105 (LV-GID)."
-  },
-  {
-    id: "don_torcuato",
-    name: "Base Don Torcuato",
-    client: "Mantenimiento / Operativa",
-    location: "Don Torcuato (Buenos Aires)",
-    fleetRequired: [
-      { model: "AW109E", count: 1 },
-      { model: "AW109C", count: 1 }
-    ],
-    assignedAircraft: [
-      { model: "AW109E", tailNumber: "LV-KNS" },
-      { model: "AW109C", tailNumber: "LV-WAE" }
-    ],
-    description: "Base operativa y centro técnico operando con AW109E (LV-KNS) y AW109C (LV-WAE)."
-  },
-  {
-    id: "nunez",
-    name: "Base Núñez",
-    client: "SAME AÉREO",
-    location: "Buenos Aires (Núñez / HEMS)",
-    fleetRequired: [{ model: "BO105", count: 1 }],
-    assignedAircraft: [{ model: "BO105", tailNumber: "LV-FKS" }],
-    description: "Contrato con SAME AÉREO para evacuaciones aeromédicas urbanas HEMS 24/7 operando con BO105 (LV-FKS)."
-  },
-  {
-    id: "rosario",
-    name: "Base Rosario",
-    client: "UTV Emergencias",
-    location: "Aeropuerto de Rosario (SAAR)",
-    fleetRequired: [{ model: "BO105", count: 1 }],
-    assignedAircraft: [{ model: "BO105", tailNumber: "LV-GIE" }],
-    description: "Contrato con UTV Emergencias desde el Aeropuerto de Rosario operando con BO105 (LV-GIE)."
-  },
-  {
-    id: "calafate",
-    name: "Base El Calafate",
-    client: "Solo Patagonia",
-    location: "El Calafate (SAWC)",
-    fleetRequired: [
-      { model: "BN2N", count: 1 },
-      { model: "RH44", count: 1 }
-    ],
-    assignedAircraft: [
-      { model: "BN2N", tailNumber: "LV-WFR" },
-      { model: "RH44", tailNumber: "LV-CCV" }
-    ],
-    description: "Contrato con Solo Patagonia operando avión BN2N (LV-WFR) y helicóptero RH44 (LV-CCV)."
-  }
-];

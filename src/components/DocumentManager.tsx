@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { 
-  FileText, Eye, Loader2, FilePlus, CheckCircle, Clock 
+import {
+  FileText, Eye, Loader2, FilePlus, CheckCircle, Clock, X
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
+import SignaturePad from "@/components/frat/SignaturePad";
 
 interface Document {
   id: string;
@@ -14,6 +15,7 @@ interface Document {
   fileName: string;
   createdAt: string | Date;
   verified?: boolean;
+  verifiedSignature?: string | null;
 }
 
 interface DocumentManagerProps {
@@ -25,22 +27,25 @@ interface DocumentManagerProps {
 
 export default function DocumentManager({ pilotId, docType, label, initialDocuments = [] }: DocumentManagerProps) {
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === "ADMIN";
+  const userRole = (session?.user as { role?: string })?.role;
+  const isAdmin = userRole === "ADMIN" || userRole === "BASE_SUPERVISOR";
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [uploading, setUploading] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [signingDocId, setSigningDocId] = useState<string | null>(null);
+  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleVerify = async (docId: string, currentStatus: boolean) => {
+  const submitVerification = async (docId: string, verified: boolean, signature: string | null) => {
     setVerifying(docId);
     try {
       const res = await fetch(`/api/upload/document/${docId}/verify`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verified: !currentStatus })
+        body: JSON.stringify({ verified, signature })
       });
       if (res.ok) {
-        setDocuments(prev => prev.map(d => d.id === docId ? { ...d, verified: !currentStatus } : d));
+        setDocuments(prev => prev.map(d => d.id === docId ? { ...d, verified, verifiedSignature: verified ? signature : null } : d));
       } else {
         alert("Error al verificar");
       }
@@ -49,6 +54,23 @@ export default function DocumentManager({ pilotId, docType, label, initialDocume
     } finally {
       setVerifying(null);
     }
+  };
+
+  const handleVerify = (docId: string, currentStatus: boolean) => {
+    if (currentStatus) {
+      // Un-verifying doesn't need a new signature.
+      submitVerification(docId, false, null);
+    } else {
+      setPendingSignature(null);
+      setSigningDocId(docId);
+    }
+  };
+
+  const confirmSignedVerification = () => {
+    if (!signingDocId || !pendingSignature) return;
+    submitVerification(signingDocId, true, pendingSignature);
+    setSigningDocId(null);
+    setPendingSignature(null);
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,7 +151,7 @@ export default function DocumentManager({ pilotId, docType, label, initialDocume
                             ? "text-green-600 bg-green-50 hover:bg-green-100" 
                             : "text-slate-400 bg-slate-50 hover:bg-slate-100"
                         }`}
-                        title={doc.verified ? "Marcado como verificado" : "Marcar como verificado"}
+                        title={doc.verified ? (doc.verifiedSignature ? "Verificado con firma digital" : "Marcado como verificado") : "Marcar como verificado (requiere firma)"}
                     >
                         {verifying === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                     </button>
@@ -164,6 +186,46 @@ export default function DocumentManager({ pilotId, docType, label, initialDocume
             </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {signingDocId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative"
+            >
+              <button
+                onClick={() => setSigningDocId(null)}
+                className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h3 className="text-lg font-black uppercase text-slate-950 dark:text-white mb-1">Verificar Documento</h3>
+              <p className="text-xs font-semibold text-slate-500 mb-4">
+                Firme para confirmar que revisó y aprueba este documento.
+              </p>
+              <SignaturePad onSave={setPendingSignature} />
+              <div className="flex items-center justify-end gap-3 mt-4">
+                <button
+                  onClick={() => setSigningDocId(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-xs"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={confirmSignedVerification}
+                  disabled={!pendingSignature || verifying === signingDocId}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase disabled:opacity-50"
+                >
+                  {verifying === signingDocId ? "Guardando..." : "Confirmar Verificación"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

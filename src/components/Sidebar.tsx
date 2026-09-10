@@ -15,7 +15,9 @@ import {
   ShieldAlert,
   FileCheck,
   Clock,
-  User
+  User,
+  MapPin,
+  History
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -28,6 +30,7 @@ const Sidebar = () => {
 
   const user = session?.user as { role?: string; pilotId?: string | null } | undefined;
   const isAdmin = user?.role === "ADMIN";
+  const isSupervisor = user?.role === "BASE_SUPERVISOR";
   const pilotId = user?.pilotId;
 
   // Close sidebar on route change
@@ -40,12 +43,14 @@ const Sidebar = () => {
 
   if (pathname === "/login") return null;
 
-  const navItems = isAdmin
+  const navItems = isAdmin || isSupervisor
     ? [
         { name: "Dashboard Flota", href: "/", icon: LayoutDashboard },
         { name: "Alertas ANAC", href: "/alerts", icon: Bell },
         { name: "FRAT", href: "/frat", icon: FileCheck },
         { name: "Logbook & Horas", href: "/logbook", icon: Clock },
+        ...(isAdmin ? [{ name: "Gestión de Flota", href: "/admin/fleet", icon: MapPin }] : []),
+        ...(isAdmin ? [{ name: "Auditoría", href: "/admin/audit", icon: History }] : []),
         { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
       ]
     : [

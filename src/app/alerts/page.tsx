@@ -26,12 +26,14 @@ export default function AlertsPage() {
 
   const role = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = role === "ADMIN";
+  const canViewAlerts = role === "ADMIN" || role === "BASE_SUPERVISOR";
 
   useEffect(() => {
     if (status === "loading") return;
 
-    // Central de Alertas expone datos de toda la flota: solo para administradores.
-    if (role !== "ADMIN") {
+    // Central de Alertas: administradores ven toda la flota, supervisores de
+    // base solo la suya (GET /api/pilots ya viene filtrado server-side).
+    if (!canViewAlerts) {
       router.replace("/");
       return;
     }
@@ -67,9 +69,9 @@ export default function AlertsPage() {
       }
     }
     loadData();
-  }, [status, role, router]);
+  }, [status, role, canViewAlerts, router]);
 
-  if (status !== "authenticated" || !isAdmin) {
+  if (status !== "authenticated" || !canViewAlerts) {
     return null;
   }
 
@@ -125,21 +127,23 @@ export default function AlertsPage() {
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <button
-            onClick={handleTriggerNotifications}
-            disabled={triggering}
-            className="flex items-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase rounded-2xl transition-all shadow-lg shadow-red-500/25 disabled:opacity-50"
-          >
-            {triggering ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
-            {triggering ? "ENVIANDO AVISOS..." : "DISPARAR ALERTAS A TRIPULACIÓN"}
-          </button>
-          {notifyResult && (
-            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-              {notifyResult}
-            </p>
-          )}
-        </div>
+        {isAdmin && (
+          <div className="flex flex-col items-end gap-2">
+            <button
+              onClick={handleTriggerNotifications}
+              disabled={triggering}
+              className="flex items-center gap-2 px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase rounded-2xl transition-all shadow-lg shadow-red-500/25 disabled:opacity-50"
+            >
+              {triggering ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
+              {triggering ? "ENVIANDO AVISOS..." : "DISPARAR ALERTAS A TRIPULACIÓN"}
+            </button>
+            {notifyResult && (
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                {notifyResult}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}

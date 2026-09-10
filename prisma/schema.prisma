@@ -13,14 +13,16 @@ model User {
   id                 String   @id @default(cuid())
   email              String   @unique
   password           String
-  role               String   @default("PILOT") // "ADMIN" or "PILOT"
+  role               String   @default("PILOT") // "ADMIN", "BASE_SUPERVISOR" or "PILOT"
+  assignedBase       String?  // BASE name this user supervises, only used when role = "BASE_SUPERVISOR"
   mustChangePassword Boolean  @default(true)
   pilotId            String?  @unique
   pilot              Pilot?   @relation(fields: [pilotId], references: [id])
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  fratForms FratForm[]
+  fratForms  FratForm[]
+  flightLogs FlightLog[]
 }
 
 model Pilot {
@@ -62,21 +64,23 @@ model Pilot {
   user            User?
   documents       Document[]
   fratForms       FratForm[]
+  flightLogs      FlightLog[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
 model Document {
-  id        String   @id @default(cuid())
-  type      String   // e.g., "CMA", "LICENCIA", "SIMULADOR"
-  fileUrl   String
-  fileName  String
-  pilotId   String
-  pilot     Pilot    @relation(fields: [pilotId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  verified  Boolean  @default(false)
+  id                String   @id @default(cuid())
+  type              String   // e.g., "CMA", "LICENCIA", "SIMULADOR"
+  fileUrl           String
+  fileName          String
+  pilotId           String
+  pilot             Pilot    @relation(fields: [pilotId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  verified          Boolean  @default(false)
+  verifiedSignature String?  // data URL of the verifier's handwritten signature
 }
 
 enum FratType {
@@ -127,5 +131,72 @@ model FratForm {
 
   @@index([pilotId])
   @@index([flightDate])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actorEmail  String?
+  action      String
+  entityType  String
+  entityId    String
+  diff        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Base {
+  id          String     @id @default(cuid())
+  name        String
+  client      String
+  location    String
+  description String?
+  aircraft    Aircraft[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Aircraft {
+  id         String   @id @default(cuid())
+  model      String
+  tailNumber String   @unique
+  baseId     String
+  base       Base     @relation(fields: [baseId], references: [id])
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([baseId])
+}
+
+model FlightLog {
+  id          String   @id @default(cuid())
+
+  pilotId     String?
+  pilot       Pilot?   @relation(fields: [pilotId], references: [id])
+  pilotName   String
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  date        DateTime
+  aircraft    String
+  tailNumber  String
+  route       String?
+
+  dayHours    Float    @default(0)
+  nightHours  Float    @default(0)
+  ifrHours    Float    @default(0)
+  landings    Int      @default(0)
+  totalHours  Float    @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pilotId])
+  @@index([date])
 }
 

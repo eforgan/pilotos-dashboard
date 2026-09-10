@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 import { auth } from "@/auth";
+import { canAccessBase } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   try {
@@ -21,31 +21,25 @@ export async function POST(request: Request) {
     }
 
     // Security check
-    const u = session.user as { role?: string; pilotId?: string };
+    const u = session.user as { role?: string; pilotId?: string; assignedBase?: string | null };
     if (u.role !== "ADMIN" && u.pilotId !== pilotId) {
-        return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        const targetPilot = await db.pilot.findUnique({ where: { id: pilotId }, select: { BASE: true } });
+        if (!canAccessBase(u, targetPilot?.BASE)) {
+          return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+        }
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Create directories
-    const relativeDir = `/uploads/documents/${pilotId}`;
-    const absoluteDir = path.join(process.cwd(), "public", relativeDir);
-    await mkdir(absoluteDir, { recursive: true });
-
-    // Filename
-    const filename = `${docType}-${Date.now()}${path.extname(file.name)}`;
-    const relativePath = `${relativeDir}/${filename}`;
-    const absolutePath = path.join(process.cwd(), "public", relativePath);
-
-    await writeFile(absolutePath, buffer);
+    const filename = `documents/${pilotId}/${docType}-${Date.now()}${getExtension(file.name)}`;
+    const blob = await put(filename, file, {
+      access: "public",
+      addRandomSuffix: false,
+    });
 
     // Record in DB
     const doc = await db.document.create({
       data: {
         type: docType,
-        fileUrl: relativePath,
+        fileUrl: blob.url,
         fileName: file.name,
         pilotId: pilotId,
       },
@@ -56,4 +50,9 @@ export async function POST(request: Request) {
     console.error("Document upload failed:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+function getExtension(filename: string): string {
+  const idx = filename.lastIndexOf(".");
+  return idx === -1 ? "" : filename.slice(idx);
 }

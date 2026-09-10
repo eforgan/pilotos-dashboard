@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   BookOpen, Clock, ShieldCheck, Plane,
-  Plus, Award, Loader2, Filter, Search
+  Plus, Award, Loader2, Filter, Search, FileDown
 } from "lucide-react";
-import { getPilots } from "@/lib/utils";
+import { getPilots, formatDate } from "@/lib/utils";
 import { Pilot } from "@/lib/types";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -13,17 +13,25 @@ import { useSession } from "next-auth/react";
 interface FlightLogEntry {
   id: string;
   date: string;
-  pilotId: string;
+  pilotId: string | null;
   pilotName: string;
   aircraft: string;
   tailNumber: string;
-  route: string;
+  route: string | null;
   dayHours: number;
   nightHours: number;
   ifrHours: number;
   landings: number;
   totalHours: number;
 }
+
+// IDs used by the old localStorage demo seed data — never real flight records,
+// so they're excluded when offering to import a pilot's local backup into the DB.
+const LEGACY_DEMO_LOG_IDS = new Set(
+  Array.from({ length: 9 }, (_, i) => `log-10${i + 1}`)
+);
+
+const LOCAL_STORAGE_KEY = "modena_flight_logs";
 
 export default function LogbookPage() {
   const { data: session } = useSession();
@@ -34,6 +42,12 @@ export default function LogbookPage() {
 
   // Flight log database records
   const [logs, setLogs] = useState<FlightLogEntry[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Legacy local-only records detected in this browser, pending import into Postgres
+  const [importableLocalLogs, setImportableLocalLogs] = useState<FlightLogEntry[]>([]);
+  const [importing, setImporting] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLog, setNewLog] = useState({
@@ -47,22 +61,36 @@ export default function LogbookPage() {
     landings: "2",
   });
 
+  async function loadLogs() {
+    try {
+      const res = await fetch("/api/logbook", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load logbook");
+      const data: FlightLogEntry[] = await res.json();
+      setLogs(data);
+    } catch (err) {
+      console.error("Error al cargar el logbook:", err);
+    }
+  }
+
   useEffect(() => {
     async function loadData() {
       try {
         const fetchedPilots = await getPilots();
         setPilots(fetchedPilots);
 
-        // Load logs from localStorage or initialize with official fleet logs
-        const storedLogs = localStorage.getItem("modena_flight_logs");
-        if (storedLogs) {
-          try {
-            setLogs(JSON.parse(storedLogs));
-          } catch {
-            setLogs(getInitialLogs(fetchedPilots));
+        await loadLogs();
+
+        // Detect legacy entries saved in this browser's localStorage (pre-DB
+        // persistence) and offer to import the real ones into Postgres.
+        try {
+          const storedLogs = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (storedLogs) {
+            const parsed: FlightLogEntry[] = JSON.parse(storedLogs);
+            const realLocalLogs = parsed.filter(l => !LEGACY_DEMO_LOG_IDS.has(l.id));
+            setImportableLocalLogs(realLocalLogs);
           }
-        } else {
-          setLogs(getInitialLogs(fetchedPilots));
+        } catch {
+          // Malformed/legacy local data — ignore, nothing to import.
         }
 
         // Set default pilot for new log
@@ -90,171 +118,80 @@ export default function LogbookPage() {
     loadData();
   }, [session]);
 
-  const getInitialLogs = (pilotsList: Pilot[]): FlightLogEntry[] => {
-    const findName = (dniOrName: string) => {
-      const match = pilotsList.find(p => p.DNI === dniOrName || p.PILOTO.toLowerCase().includes(dniOrName.toLowerCase()));
-      return match ? match.PILOTO : "FORGAN EDUARDO JAVIER";
-    };
-
-    return [
-      {
-        id: "log-101",
-        date: "2026-09-02",
-        pilotId: "p101",
-        pilotName: findName("12572581"), // FORGAN EDUARDO JAVIER
-        aircraft: "BO105",
-        tailNumber: "LV-FKS",
-        route: "BASE NÚÑEZ (SAME AÉREO) -> HELSITE SAN ISIDRO -> BASE NÚÑEZ",
-        dayHours: 2.0,
-        nightHours: 0.8,
-        ifrHours: 1.0,
-        landings: 4,
-        totalHours: 2.8,
-      },
-      {
-        id: "log-102",
-        date: "2026-08-28",
-        pilotId: "p102",
-        pilotName: findName("CORNEJO"), // CORNEJO, RAFAEL NERI
-        aircraft: "AW109SP",
-        tailNumber: "LV-WLO",
-        route: "BASE BRM -> PLATAFORMA BRM -> BASE BRM",
-        dayHours: 3.5,
-        nightHours: 0.0,
-        ifrHours: 1.2,
-        landings: 3,
-        totalHours: 3.5,
-      },
-      {
-        id: "log-103",
-        date: "2026-08-24",
-        pilotId: "p103",
-        pilotName: findName("GALLO"), // GALLO, PABLO ALEJANDRO
-        aircraft: "AW109E",
-        tailNumber: "LV-KCR",
-        route: "BASE NEUQUÉN (VISTA ENERGY) -> AÑELO -> BASE NEUQUÉN",
-        dayHours: 2.2,
-        nightHours: 0.6,
-        ifrHours: 0.8,
-        landings: 2,
-        totalHours: 2.8,
-      },
-      {
-        id: "log-104",
-        date: "2026-08-20",
-        pilotId: "p104",
-        pilotName: findName("GUERRERO"), // GUERRERO, JOSE
-        aircraft: "BO105",
-        tailNumber: "LV-CSM",
-        route: "BASE SIERRA GRANDE (YPF VMOS) -> INSPECCIÓN -> BASE SIERRA GRANDE",
-        dayHours: 1.8,
-        nightHours: 0.0,
-        ifrHours: 0.0,
-        landings: 2,
-        totalHours: 1.8,
-      },
-      {
-        id: "log-105",
-        date: "2026-08-15",
-        pilotId: "p105",
-        pilotName: findName("DIAZ"), // DIAZ, RICARDO
-        aircraft: "AW109E",
-        tailNumber: "LV-KNS",
-        route: "BASE DON TORCUATO -> CENTRO TÉCNICO -> BASE DON TORCUATO",
-        dayHours: 2.5,
-        nightHours: 0.5,
-        ifrHours: 1.0,
-        landings: 2,
-        totalHours: 3.0,
-      },
-      {
-        id: "log-106",
-        date: "2026-08-10",
-        pilotId: "p106",
-        pilotName: findName("GRASSANO"), // GRASSANO, MATIAS
-        aircraft: "AW109SP",
-        tailNumber: "LV-WLP",
-        route: "BASE BRM -> INSPECCIÓN BRM -> BASE BRM",
-        dayHours: 1.2,
-        nightHours: 0.4,
-        ifrHours: 0.3,
-        landings: 3,
-        totalHours: 1.6,
-      },
-      {
-        id: "log-107",
-        date: "2026-08-05",
-        pilotId: "p107",
-        pilotName: findName("PEREZ"), // PEREZ MARIANO MARTIN
-        aircraft: "BO105",
-        tailNumber: "LV-GIE",
-        route: "BASE ROSARIO (UTV) -> SANATORIO PARQUE -> BASE ROSARIO",
-        dayHours: 1.5,
-        nightHours: 0.7,
-        ifrHours: 0.5,
-        landings: 2,
-        totalHours: 2.2,
-      },
-      {
-        id: "log-108",
-        date: "2026-08-01",
-        pilotId: "p108",
-        pilotName: findName("ROLLE"), // ROLLE LUCAS
-        aircraft: "BN2N",
-        tailNumber: "LV-WFR",
-        route: "BASE EL CALAFATE (SOLO PATAGONIA) -> GLACIAR PERITO MORENO -> EL CALAFATE",
-        dayHours: 2.8,
-        nightHours: 0.0,
-        ifrHours: 0.5,
-        landings: 2,
-        totalHours: 2.8,
-      },
-      {
-        id: "log-109",
-        date: "2026-07-28",
-        pilotId: "p109",
-        pilotName: findName("MARTIN"), // MARTIN FRANCISCO LUIS
-        aircraft: "RH44",
-        tailNumber: "LV-CCV",
-        route: "BASE EL CALAFATE -> RECONOCIMIENTO -> BASE EL CALAFATE",
-        dayHours: 1.4,
-        nightHours: 0.0,
-        ifrHours: 0.0,
-        landings: 3,
-        totalHours: 1.4,
-      },
-    ];
-  };
-
-  const saveLogs = (updatedLogs: FlightLogEntry[]) => {
-    setLogs(updatedLogs);
-    localStorage.setItem("modena_flight_logs", JSON.stringify(updatedLogs));
-  };
-
-  const handleAddLog = (e: React.FormEvent) => {
+  const handleAddLog = async (e: React.FormEvent) => {
     e.preventDefault();
-    const day = parseFloat(newLog.dayHours) || 0;
-    const night = parseFloat(newLog.nightHours) || 0;
-    const total = day + night;
+    setFormError(null);
+    setSaving(true);
 
-    const createdLog: FlightLogEntry = {
-      id: `log-${Date.now()}`,
-      date: new Date().toISOString().split("T")[0],
-      pilotId: `pilot-${Date.now()}`,
-      pilotName: newLog.pilotName.toUpperCase(),
-      aircraft: newLog.aircraft,
-      tailNumber: newLog.tailNumber.toUpperCase(),
-      route: newLog.route.toUpperCase(),
-      dayHours: day,
-      nightHours: night,
-      ifrHours: parseFloat(newLog.ifrHours) || 0,
-      landings: parseInt(newLog.landings) || 1,
-      totalHours: total,
-    };
+    const matchedPilot = pilots.find(p => p.PILOTO === newLog.pilotName);
 
-    const updated = [createdLog, ...logs];
-    saveLogs(updated);
-    setShowAddModal(false);
+    try {
+      const res = await fetch("/api/logbook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pilotId: matchedPilot?.id ?? null,
+          pilotName: newLog.pilotName.toUpperCase(),
+          date: new Date().toISOString(),
+          aircraft: newLog.aircraft,
+          tailNumber: newLog.tailNumber.toUpperCase(),
+          route: newLog.route.toUpperCase(),
+          dayHours: newLog.dayHours,
+          nightHours: newLog.nightHours,
+          ifrHours: newLog.ifrHours,
+          landings: newLog.landings,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "No se pudo registrar el vuelo");
+      }
+
+      await loadLogs();
+      setShowAddModal(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "No se pudo registrar el vuelo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImportLocalLogs = async () => {
+    setImporting(true);
+    try {
+      for (const log of importableLocalLogs) {
+        const matchedPilot = pilots.find(p => p.PILOTO === log.pilotName);
+        await fetch("/api/logbook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pilotId: matchedPilot?.id ?? null,
+            pilotName: log.pilotName,
+            date: log.date,
+            aircraft: log.aircraft,
+            tailNumber: log.tailNumber,
+            route: log.route,
+            dayHours: log.dayHours,
+            nightHours: log.nightHours,
+            ifrHours: log.ifrHours,
+            landings: log.landings,
+          }),
+        });
+      }
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      setImportableLocalLogs([]);
+      await loadLogs();
+    } catch (err) {
+      console.error("Error al importar registros locales:", err);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const dismissImportBanner = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setImportableLocalLogs([]);
   };
 
   const filteredLogs = useMemo(() => {
@@ -263,7 +200,7 @@ export default function LogbookPage() {
       const matchesSearch = searchQuery === "" || 
         l.pilotName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.aircraft.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        l.route.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (l.route ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.tailNumber.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesPilot && matchesSearch;
     });
@@ -300,6 +237,15 @@ export default function LogbookPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <a
+            href={`/api/logbook/pdf${selectedPilot !== "all" ? `?pilotId=${pilots.find(p => p.PILOTO === selectedPilot)?.id ?? ""}` : ""}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-5 py-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-black text-xs uppercase rounded-2xl transition-all"
+          >
+            <FileDown className="w-4 h-4 text-blue-600" />
+            EXPORTAR PDF
+          </a>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase rounded-2xl transition-all shadow-xl shadow-blue-500/25"
@@ -309,6 +255,31 @@ export default function LogbookPage() {
           </button>
         </div>
       </div>
+
+      {/* Legacy local-storage import banner */}
+      {importableLocalLogs.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 p-5 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-800 rounded-2xl">
+          <p className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase">
+            Se encontraron {importableLocalLogs.length} registro{importableLocalLogs.length === 1 ? "" : "s"} de vuelo guardados solo en este navegador (versión anterior). ¿Importarlos a la base de datos para que no se pierdan?
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={dismissImportBanner}
+              disabled={importing}
+              className="px-4 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 font-bold text-xs uppercase disabled:opacity-50"
+            >
+              Descartar
+            </button>
+            <button
+              onClick={handleImportLocalLogs}
+              disabled={importing}
+              className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase disabled:opacity-50"
+            >
+              {importing ? "Importando..." : "Importar ahora"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-center mb-8">
@@ -413,7 +384,7 @@ export default function LogbookPage() {
               {filteredLogs.length > 0 ? (
                 filteredLogs.map(log => (
                   <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="py-4 text-slate-600 dark:text-slate-400 font-mono">{log.date}</td>
+                    <td className="py-4 text-slate-600 dark:text-slate-400 font-mono">{formatDate(log.date)}</td>
                     <td className="py-4 font-black uppercase text-slate-950 dark:text-white">{log.pilotName}</td>
                     <td className="py-4">
                       <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] font-black uppercase text-blue-600 dark:text-blue-400">
@@ -556,19 +527,27 @@ export default function LogbookPage() {
                 </div>
               </div>
 
+              {formError && (
+                <p className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl px-4 py-3">
+                  {formError}
+                </p>
+              )}
+
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-xs"
+                  disabled={saving}
+                  className="px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-xs disabled:opacity-50"
                 >
                   CANCELAR
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase shadow-lg shadow-blue-500/30"
+                  disabled={saving}
+                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase shadow-lg shadow-blue-500/30 disabled:opacity-50"
                 >
-                  GUARDAR VUELO
+                  {saving ? "GUARDANDO..." : "GUARDAR VUELO"}
                 </button>
               </div>
             </form>

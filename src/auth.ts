@@ -77,6 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: existingUser.pilot?.PILOTO || existingUser.email,
             role: existingUser.role,
             pilotId: existingUser.pilotId,
+            assignedBase: existingUser.assignedBase,
             mustChangePassword: existingUser.mustChangePassword,
           };
         } catch (error: unknown) {
@@ -92,12 +93,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        const u = user as { role?: string; id?: string; email?: string | null; pilotId?: string | null; name?: string | null; mustChangePassword?: boolean };
+        const u = user as { role?: string; id?: string; email?: string | null; pilotId?: string | null; assignedBase?: string | null; name?: string | null; mustChangePassword?: boolean };
         if (u.role) token.role = u.role;
         if (u.id) token.id = u.id;
         if (u.email) token.email = u.email;
         if (u.name) token.name = u.name;
         token.pilotId = u.pilotId ?? null;
+        token.assignedBase = u.assignedBase ?? null;
         token.mustChangePassword = u.mustChangePassword ?? false;
       }
 
@@ -114,10 +116,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        const u = session.user as { role?: string; id?: string; pilotId?: string | null; name?: string | null; mustChangePassword?: boolean };
+        const u = session.user as { role?: string; id?: string; pilotId?: string | null; assignedBase?: string | null; name?: string | null; mustChangePassword?: boolean };
         u.role = token.role as string;
         u.id = token.id as string;
         u.pilotId = (token.pilotId as string | null) ?? null;
+        u.assignedBase = (token.assignedBase as string | null) ?? null;
         u.mustChangePassword = (token.mustChangePassword as boolean) ?? false;
         if (token.name) u.name = token.name as string;
       }

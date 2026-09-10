@@ -197,7 +197,8 @@ export function getSummary(pilots: Pilot[]): PilotSummary {
   };
 }
 
-export function normalizeLicense(lic: string): string {
+export function normalizeLicense(lic: string | null | undefined): string {
+  if (!lic) return "Sin Licencia";
   const upper = lic.toUpperCase().trim();
   if (upper.includes("TLAH") || upper.includes("TLA") || upper.includes("T.L.A")) return "TLAH";
   if (upper.includes("PCH") || upper.includes("P.C.H")) return "PCH";
@@ -227,9 +228,9 @@ export function searchPilots(pilots: Pilot[], query: string): Pilot[] {
   return pilots.filter(
     (p) =>
       p.PILOTO.toLowerCase().includes(q) ||
-      p.DNI.includes(q) ||
-      p.BASE.toLowerCase().includes(q) ||
-      p.LICENCIA.toLowerCase().includes(q) ||
+      (p.DNI || "").includes(q) ||
+      (p.BASE || "").toLowerCase().includes(q) ||
+      (p.LICENCIA || "").toLowerCase().includes(q) ||
       (p.EMAIL && p.EMAIL.toLowerCase().includes(q))
   );
 }

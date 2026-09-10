@@ -1,32 +1,75 @@
 "use client";
 
-import React, { useState } from "react";
-import { Pilot, COMPANY_BASES, BaseContract } from "@/lib/types";
+import React, { useEffect, useState } from "react";
+import { Pilot } from "@/lib/types";
 import { getPilotOverallStatus, getPilotAircraft } from "@/lib/utils";
-import { MapPin, Plane, ChevronDown, ChevronUp, Building2 } from "lucide-react";
+import { MapPin, Plane, ChevronDown, ChevronUp, Building2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface AircraftRecord {
+  id: string;
+  model: string;
+  tailNumber: string;
+}
+
+interface BaseRecord {
+  id: string;
+  name: string;
+  client: string;
+  location: string;
+  description: string | null;
+  aircraft: AircraftRecord[];
+}
 
 interface BaseCoverageMatrixProps {
   pilots: Pilot[];
 }
 
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim();
+}
+
+// A pilot's free-text BASE field is matched against the base's own name or
+// client (fuzzy, accent-insensitive) since there's no formal foreign key.
+function pilotMatchesBase(pilotBase: string, base: BaseRecord): boolean {
+  if (!pilotBase) return false;
+  const p = normalize(pilotBase);
+  const n = normalize(base.name);
+  const c = normalize(base.client);
+  return p.includes(n) || n.includes(p) || (c.length > 2 && p.includes(c));
+}
+
 export default function BaseCoverageMatrix({ pilots }: BaseCoverageMatrixProps) {
+  const [bases, setBases] = useState<BaseRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedBaseId, setExpandedBaseId] = useState<string | null>(null);
 
-  // Helper to match pilot base string to official BaseContract
-  const matchBaseContract = (pilotBase: string): BaseContract | undefined => {
-    if (!pilotBase) return undefined;
-    const b = pilotBase.toLowerCase().trim();
-    if (b.includes("sierra") || b.includes("grande") || b.includes("ypf")) return COMPANY_BASES.find(c => c.id === "sierra_grande");
-    if (b.includes("brm") || b.includes("rincón") || b.includes("rincon")) return COMPANY_BASES.find(c => c.id === "brm");
-    if (b.includes("neuquen") || b.includes("neuquén") || b.includes("vista")) return COMPANY_BASES.find(c => c.id === "neuquen");
-    if (b.includes("torcuato") || b.includes("don")) return COMPANY_BASES.find(c => c.id === "don_torcuato");
-    if (b.includes("nuñez") || b.includes("nunez") || b.includes("same")) return COMPANY_BASES.find(c => c.id === "nunez");
-    if (b.includes("rosario") || b.includes("utv")) return COMPANY_BASES.find(c => c.id === "rosario");
-    if (b.includes("cabo") || b.includes("virgenes") || b.includes("psm")) return COMPANY_BASES.find(c => c.id === "brm");
-    if (b.includes("calafate") || b.includes("patagonia")) return COMPANY_BASES.find(c => c.id === "calafate");
-    return undefined;
-  };
+  useEffect(() => {
+    async function loadBases() {
+      try {
+        const res = await fetch("/api/bases", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load bases");
+        setBases(await res.json());
+      } catch (err) {
+        console.error("Error al cargar bases:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadBases();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-10 shadow-md mb-8 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md mb-8">
@@ -55,23 +98,22 @@ export default function BaseCoverageMatrix({ pilots }: BaseCoverageMatrixProps) 
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {COMPANY_BASES.map((contract) => {
-          // Filter pilots assigned to this contract base
-          const assignedPilots = pilots.filter((p) => {
-            const matched = matchBaseContract(p.BASE);
-            return matched?.id === contract.id || (p.BASE && p.BASE.toUpperCase().includes(contract.name.toUpperCase()));
-          });
+        {bases.map((base) => {
+          // Filter pilots assigned to this base (a pilot's BASE field can only
+          // hold one value today, so pilots who split time across two bases —
+          // e.g. Cabo Vírgenes/Neuquén — only show under their primary one).
+          const assignedPilots = pilots.filter((p) => pilotMatchesBase(p.BASE, base));
 
-          const isExpanded = expandedBaseId === contract.id;
+          const isExpanded = expandedBaseId === base.id;
 
           return (
             <div
-              key={contract.id}
+              key={base.id}
               className="border-2 border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-slate-850/50 transition-all"
             >
               {/* Header Row */}
               <div
-                onClick={() => setExpandedBaseId(isExpanded ? null : contract.id)}
+                onClick={() => setExpandedBaseId(isExpanded ? null : base.id)}
                 className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors"
               >
                 <div className="flex items-start md:items-center gap-3">
@@ -80,20 +122,20 @@ export default function BaseCoverageMatrix({ pilots }: BaseCoverageMatrixProps) 
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-black text-base uppercase text-slate-950 dark:text-white">{contract.name}</h3>
+                      <h3 className="font-black text-base uppercase text-slate-950 dark:text-white">{base.name}</h3>
                       <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 text-[11px] font-black uppercase border border-blue-300 dark:border-blue-700">
-                        {contract.client}
+                        {base.client}
                       </span>
                     </div>
                     <p className="text-xs font-bold text-slate-500 mt-0.5">
-                      {contract.description}
+                      {base.description}
                     </p>
                   </div>
                 </div>
 
                 {/* Fleet Required vs Available Badges & Matrículas */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {contract.assignedAircraft.map((ac) => {
+                  {base.aircraft.map((ac) => {
                     // La habilitación de los pilotos es genérica a "AW109", independientemente
                     // de la variante (C, E, SP): por eso se compara solo el prefijo del modelo.
                     const qualifiedPilots = assignedPilots.filter((p) => {
@@ -102,7 +144,7 @@ export default function BaseCoverageMatrix({ pilots }: BaseCoverageMatrixProps) 
                     });
                     const readyPilots = qualifiedPilots.filter((p) => getPilotOverallStatus(p) === "ok");
 
-                    const required = contract.fleetRequired.find((f) => f.model === ac.model)?.count ?? 1;
+                    const required = base.aircraft.filter((a) => a.model === ac.model).length;
                     const isSufficient = readyPilots.length >= required;
                     const isCritical = readyPilots.length === 0;
 
@@ -143,16 +185,16 @@ export default function BaseCoverageMatrix({ pilots }: BaseCoverageMatrixProps) 
                   >
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider">
-                        Tripulación Asignada a {contract.name} ({assignedPilots.length} Pilotos Registrados):
+                        Tripulación Asignada a {base.name} ({assignedPilots.length} Pilotos Registrados):
                       </h4>
-                      <span className="text-xs font-bold text-slate-400 uppercase">Ubicación: {contract.location}</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase">Ubicación: {base.location}</span>
                     </div>
 
                     <div className="p-3 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                       <Plane className="w-4 h-4 text-blue-500" />
                       <span>Flota Oficial Asignada a esta Base:</span>
                       <div className="flex items-center gap-2 ml-2">
-                        {contract.assignedAircraft.map(ac => (
+                        {base.aircraft.map(ac => (
                           <span key={ac.tailNumber} className="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[11px] font-mono font-black">
                             {ac.model} - {ac.tailNumber}
                           </span>

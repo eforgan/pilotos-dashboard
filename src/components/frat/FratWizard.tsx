@@ -21,7 +21,7 @@ import {
   computeFratScore,
   getFratSheet,
 } from "@/lib/frat-data";
-import { COMPANY_BASES, AIRCRAFT_MODELS, MISSION_TYPES, CREW_MODALITIES, CrewModality } from "@/lib/types";
+import { AIRCRAFT_MODELS, MISSION_TYPES, CREW_MODALITIES, CrewModality } from "@/lib/types";
 import FratStepItem from "./FratStepItem";
 import FratScoreBar from "./FratScoreBar";
 import SignaturePad from "./SignaturePad";
@@ -54,6 +54,7 @@ export default function FratWizard() {
   const isAdmin = user?.role === "ADMIN";
 
   const [pilots, setPilots] = useState<PilotOption[]>([]);
+  const [bases, setBases] = useState<{ id: string; name: string; client: string }[]>([]);
   const [step, setStep] = useState(0);
   const [fratType, setFratType] = useState<FratType | null>(null);
   const [responses, setResponses] = useState<FratResponses>({});
@@ -79,6 +80,10 @@ export default function FratWizard() {
     fetch("/api/pilots")
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setPilots(data))
+      .catch(() => {});
+    fetch("/api/bases")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setBases(data))
       .catch(() => {});
   }, []);
 
@@ -376,7 +381,7 @@ export default function FratWizard() {
                   <label className="block text-xs font-black text-slate-500 uppercase mb-1">Base operativa</label>
                   <select value={base} onChange={(e) => setBase(e.target.value)} className="input-field bg-white dark:bg-slate-900">
                     <option value="">Sin especificar</option>
-                    {COMPANY_BASES.map((b) => (
+                    {bases.map((b) => (
                       <option key={b.id} value={b.name}>
                         {b.name} — {b.client}
                       </option>

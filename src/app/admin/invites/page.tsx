@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminInvitesPage() {
   const [pilots, setPilots] = useState<Pilot[]>([]);
+  const [bases, setBases] = useState<{ id: string; name: string; client: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,6 +70,11 @@ export default function AdminInvitesPage() {
       }
     }
     loadData();
+
+    fetch("/api/bases")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setBases(data))
+      .catch(() => {});
   }, []);
 
   const handleCopy = (token: string, id: string) => {
@@ -259,6 +265,34 @@ export default function AdminInvitesPage() {
     }
   };
 
+  const handleRoleChange = async (pilot: Pilot, role: string, assignedBase?: string) => {
+    if (!pilot.user) return;
+    try {
+      const res = await fetch(`/api/users/${pilot.user.id}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role,
+          assignedBase: role === "BASE_SUPERVISOR" ? (assignedBase ?? pilot.user.assignedBase ?? "") : null,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPilots((prev) =>
+          prev.map((p) =>
+            p.id === pilot.id && p.user ? { ...p, user: { ...p.user, role: updated.role, assignedBase: updated.assignedBase } } : p
+          )
+        );
+      } else {
+        const err = await res.json();
+        alert(err.error || "Error al actualizar el rol");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al actualizar el rol");
+    }
+  };
+
   if (loading) return (
     <div className="p-20 text-center text-slate-400 animate-pulse font-black tracking-widest uppercase">
       Cargando Enlaces e Invitaciones de Tripulación...
@@ -349,12 +383,9 @@ export default function AdminInvitesPage() {
                 onChange={(e) => setSelectedBaseGroup(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-extrabold text-slate-950 dark:text-white outline-none focus:border-blue-600"
               >
-                <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
-                <option value="Base Rosario">Base Rosario (UTV)</option>
-                <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
-                <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
-                <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
-                <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+                {bases.map((b) => (
+                  <option key={b.id} value={b.name}>{b.name} ({b.client})</option>
+                ))}
               </select>
             </div>
           )}
@@ -521,6 +552,31 @@ export default function AdminInvitesPage() {
                     <span>•</span>
                     <span>Base: <strong className="text-slate-950 dark:text-white">{pilot.BASE || "—"}</strong></span>
                   </div>
+                  {isRegistered && pilot.user && (
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <select
+                        value={pilot.user.role}
+                        onChange={(e) => handleRoleChange(pilot, e.target.value)}
+                        className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-slate-700 dark:text-slate-200 outline-none focus:border-blue-600"
+                      >
+                        <option value="PILOT">Piloto</option>
+                        <option value="BASE_SUPERVISOR">Supervisor de Base</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                      {pilot.user.role === "BASE_SUPERVISOR" && (
+                        <select
+                          value={pilot.user.assignedBase || ""}
+                          onChange={(e) => handleRoleChange(pilot, "BASE_SUPERVISOR", e.target.value)}
+                          className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black uppercase text-slate-700 dark:text-slate-200 outline-none focus:border-blue-600"
+                        >
+                          <option value="">Sin base asignada</option>
+                          {bases.map((b) => (
+                            <option key={b.id} value={b.name}>{b.name}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -640,12 +696,9 @@ export default function AdminInvitesPage() {
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-950 dark:text-white outline-none focus:border-blue-600"
                     >
                       <option value="">Seleccionar Base...</option>
-                      <option value="Base Núñez">Base Núñez (SAME AÉREO)</option>
-                      <option value="Base Rosario">Base Rosario (UTV)</option>
-                      <option value="Base Neuquén">Base Neuquén (Vista Energy)</option>
-                      <option value="Base Cabo Vírgenes">Base Cabo Vírgenes (PSM)</option>
-                      <option value="Base Sierra Grande">Base Sierra Grande (YPF Vmos)</option>
-                      <option value="Base El Calafate">Base El Calafate (Solo Patagonia)</option>
+                      {bases.map((b) => (
+                        <option key={b.id} value={b.name}>{b.name} ({b.client})</option>
+                      ))}
                     </select>
                   </div>
                 </div>

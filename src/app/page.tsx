@@ -22,7 +22,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CalendarView from "@/components/CalendarView";
 import ExcelExportButton from "@/components/ExcelExportButton";
+import CsvImportButton from "@/components/CsvImportButton";
 import BaseCoverageMatrix from "@/components/BaseCoverageMatrix";
+import ExpirationTrendChart from "@/components/ExpirationTrendChart";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -38,8 +40,9 @@ export default function DashboardPage() {
   const [aircraftFilter, setAircraftFilter] = useState("all");
 
   useEffect(() => {
-    // Restrict global dashboard to Super Admin (role === "ADMIN")
-    if (session?.user && session.user.role !== "ADMIN") {
+    // Fleet dashboard is for ADMIN (sees everyone) and BASE_SUPERVISOR
+    // (sees only their assigned base, enforced server-side by GET /api/pilots).
+    if (session?.user && session.user.role !== "ADMIN" && session.user.role !== "BASE_SUPERVISOR") {
       const user = session.user as { role?: string; pilotId?: string | null };
       if (user.pilotId) {
         router.replace(`/pilot/${user.pilotId}`);
@@ -49,18 +52,19 @@ export default function DashboardPage() {
       return;
     }
 
-    async function loadData() {
-      try {
-        const data = await getPilots();
-        setPilots(data);
-      } catch (err) {
-        console.error("Dashboard error:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+    loadPilots();
   }, [session, router]);
+
+  async function loadPilots() {
+    try {
+      const data = await getPilots();
+      setPilots(data);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const summary = useMemo(() => {
     if (!pilots.length) return null;
@@ -102,6 +106,7 @@ export default function DashboardPage() {
       {/* User Status Bar */}
       <div className="flex flex-wrap items-center justify-end gap-3 mb-4">
         <ExcelExportButton pilots={pilots} />
+        {session?.user?.role === "ADMIN" && <CsvImportButton onImported={loadPilots} />}
         {session?.user?.role === "ADMIN" && (
             <Link href="/admin/invites" className="flex items-center gap-2 text-xs font-black text-blue-900 dark:text-blue-200 border-2 border-blue-300 bg-blue-100 dark:bg-blue-950 px-4 py-2.5 rounded-2xl hover:bg-blue-200 transition-colors uppercase shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-300" />
@@ -137,6 +142,9 @@ export default function DashboardPage() {
 
       {/* Analytics Summary */}
       {summary && <PilotMetrics summary={summary} />}
+
+      {/* Expiration Trend */}
+      {pilots.length > 0 && <ExpirationTrendChart pilots={pilots} />}
 
       {/* Tactical Base Coverage Matrix */}
       <BaseCoverageMatrix pilots={pilots} />

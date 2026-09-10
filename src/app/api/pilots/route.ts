@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -9,8 +10,15 @@ export async function GET() {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    const u = session.user as { role?: string; assignedBase?: string | null };
+    const where = u.role === "BASE_SUPERVISOR" ? { BASE: u.assignedBase || "__none__" } : {};
+
     const pilots = await db.pilot.findMany({
+      where,
       orderBy: { PILOTO: "asc" },
+      include: {
+        user: { select: { id: true, email: true, role: true, assignedBase: true } },
+      },
     });
     return NextResponse.json(pilots);
   } catch (error) {
@@ -49,6 +57,16 @@ export async function POST(request: Request) {
         BN2B: data.BN2B || null,
         inviteToken,
       },
+    });
+
+    const u = session.user as { id?: string };
+    await logAudit({
+      actorId: u.id,
+      actorEmail: session.user?.email || null,
+      action: "CREATE_INVITE",
+      entityType: "Pilot",
+      entityId: pilot.id,
+      diff: { PILOTO: pilot.PILOTO, DNI: pilot.DNI },
     });
 
     return NextResponse.json(pilot, { status: 201 });

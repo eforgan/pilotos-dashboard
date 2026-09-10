@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 
 export async function POST(request: Request) {
   try {
@@ -24,32 +23,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    let imageUrl = `data:${file.type || "image/jpeg"};base64,${buffer.toString("base64")}`;
-
-    // Try saving locally for persistent static serve if filesystem is writable
-    try {
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "profiles");
-      await mkdir(uploadDir, { recursive: true });
-      const filename = `${pilotId}-${Date.now()}${path.extname(file.name) || ".jpg"}`;
-      const absolutePath = path.join(uploadDir, filename);
-      await writeFile(absolutePath, buffer);
-      imageUrl = `/uploads/profiles/${filename}`;
-    } catch {
-      // Fallback to base64 data URI for serverless production (Vercel)
-    }
+    const ext = getExtension(file.name) || ".jpg";
+    const filename = `profiles/${pilotId}-${Date.now()}${ext}`;
+    const blob = await put(filename, file, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type || "image/jpeg",
+    });
 
     // Update database
     await db.pilot.update({
       where: { id: pilotId },
-      data: { imageUrl },
+      data: { imageUrl: blob.url },
     });
 
-    return NextResponse.json({ url: imageUrl });
+    return NextResponse.json({ url: blob.url });
   } catch (error) {
     console.error("Upload failed:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+function getExtension(filename: string): string {
+  const idx = filename.lastIndexOf(".");
+  return idx === -1 ? "" : filename.slice(idx);
 }

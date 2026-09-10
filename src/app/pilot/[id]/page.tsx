@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { getPilotById, updatePilot } from "@/lib/utils";
-import { Pilot } from "@/lib/types";
+import { Pilot, TRACKABLE_FIELDS } from "@/lib/types";
 import { 
   User, Phone, Mail, CreditCard, Calendar, Shield, Plane, 
   MapPin, Save, ArrowLeft, Loader2, CheckCircle, AlertTriangle, FileText
@@ -30,6 +30,7 @@ export default function PilotProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [formData, setFormData] = useState<Partial<Pilot>>({});
+  const [bases, setBases] = useState<{ id: string; name: string; client: string; aircraft: { model: string; tailNumber: string }[] }[]>([]);
 
   useEffect(() => {
     // Access control: non-admin users can only view their own legajo
@@ -56,12 +57,62 @@ export default function PilotProfilePage() {
       }
     }
     loadPilot();
+
+    fetch("/api/bases")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setBases(data))
+      .catch(() => {});
   }, [id, session, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  // TRACKABLE_FIELDS drive the vencimiento/alert engine and must hold either
+  // a clean ISO date or one of these two sentinels — see pilot-schema.ts.
+  const TRACKABLE_KEYS = new Set(TRACKABLE_FIELDS.map(f => f.key));
+  const DATE_SENTINELS = ["N.A.", "CURRENT"] as const;
+
+  const toggleSentinel = (fieldKey: keyof Pilot, sentinel: "N.A." | "CURRENT") => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldKey]: prev[fieldKey] === sentinel ? "" : sentinel,
+    }));
+  };
+
+  function renderTrackableDateInput(fieldId: keyof Pilot) {
+    const rawValue = (formData[fieldId] as string) || "";
+    const isSentinel = (DATE_SENTINELS as readonly string[]).includes(rawValue);
+    return (
+      <div className="space-y-2">
+        <input
+          type="date"
+          name={fieldId}
+          className="input-field pl-12 disabled:opacity-50 disabled:cursor-not-allowed"
+          value={isSentinel ? "" : rawValue}
+          disabled={isSentinel}
+          onChange={handleInputChange}
+        />
+        <div className="flex gap-2">
+          {DATE_SENTINELS.map(sentinel => (
+            <button
+              key={sentinel}
+              type="button"
+              onClick={() => toggleSentinel(fieldId, sentinel)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border-2 transition-colors ${
+                rawValue === sentinel
+                  ? "bg-blue-600 border-blue-600 text-white"
+                  : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-500"
+              }`}
+            >
+              {sentinel === "N.A." ? "N/A" : "Vigencia indefinida"}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,13 +281,11 @@ export default function PilotProfilePage() {
                   onChange={handleInputChange}
                 >
                   <option value="">Seleccionar Base de Operaciones...</option>
-                  <option value="Base Sierra Grande">Base Sierra Grande (BO105 LV-CSM)</option>
-                  <option value="Base BRM">Base BRM (AW109SP LV-WLO / LV-WLP)</option>
-                  <option value="Base Neuquén">Base Neuquén (AW109E LV-KCR / BO105 LV-GID)</option>
-                  <option value="Base Don Torcuato">Base Don Torcuato (AW109E LV-KNS / AW109C LV-WAE)</option>
-                  <option value="Base Núñez">Base Núñez (SAME AÉREO - BO105 LV-FKS)</option>
-                  <option value="Base Rosario">Base Rosario (UTV - BO105 LV-GIE)</option>
-                  <option value="Base El Calafate">Base El Calafate (Solo Patagonia - BN2N LV-WFR / RH44 LV-CCV)</option>
+                  {bases.map((b) => (
+                    <option key={b.id} value={b.name}>
+                      {b.name} ({b.client}{b.aircraft.length > 0 ? ` - ${b.aircraft.map(a => `${a.model} ${a.tailNumber}`).join(" / ")}` : ""})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -277,17 +326,24 @@ export default function PilotProfilePage() {
               <div key={field.id} className="space-y-3 p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="space-y-1.5 flex-1">
                   <label className="text-xs font-black text-muted-foreground uppercase">{field.label}</label>
-                  <div className="relative">
-                    <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input 
-                      type="text" 
-                      name={field.id}
-                      placeholder="DD/MM/AAAA"
-                      className="input-field pl-12"
-                      value={(formData[field.id as keyof Pilot] as string) || ""}
-                      onChange={handleInputChange}
-                    />
-                  </div>
+                  {TRACKABLE_KEYS.has(field.id as keyof Pilot) ? (
+                    <div className="relative">
+                      <field.icon className="absolute left-4 top-[18px] w-4 h-4 text-muted-foreground z-10" />
+                      {renderTrackableDateInput(field.id as keyof Pilot)}
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <field.icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        name={field.id}
+                        placeholder="DD/MM/AAAA"
+                        className="input-field pl-12"
+                        value={(formData[field.id as keyof Pilot] as string) || ""}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  )}
                 </div>
                 <DocumentManager 
                   pilotId={id as string}
@@ -363,13 +419,17 @@ export default function PilotProfilePage() {
                 ].map(field => (
                     <div key={field.id} className="space-y-1.5">
                         <label className="text-xs font-black text-muted-foreground uppercase">{field.label}</label>
-                        <input 
-                            type="text" 
-                            name={field.id}
-                            className="input-field"
-                            value={(formData[field.id as keyof Pilot] as string) || ""}
-                            onChange={handleInputChange}
-                        />
+                        {TRACKABLE_KEYS.has(field.id as keyof Pilot) ? (
+                          renderTrackableDateInput(field.id as keyof Pilot)
+                        ) : (
+                          <input
+                              type="text"
+                              name={field.id}
+                              className="input-field"
+                              value={(formData[field.id as keyof Pilot] as string) || ""}
+                              onChange={handleInputChange}
+                          />
+                        )}
                     </div>
                 ))}
             </div>
