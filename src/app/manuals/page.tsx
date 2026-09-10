@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Plane, AlertTriangle, ShieldCheck, FileText, ChevronRight, X, Download } from "lucide-react";
+import { BookOpen, Plane, AlertTriangle, ShieldCheck, FileText, ChevronRight, X, Download, Layers } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ManualItem {
@@ -15,10 +15,103 @@ interface ManualItem {
   sections: { title: string; content: string }[];
 }
 
+function downloadManual(manual: ManualItem) {
+  const lines = [
+    manual.title,
+    `Versión: ${manual.version} | Actualizado: ${manual.updatedAt}`,
+    "",
+    manual.description,
+    "",
+    ...manual.sections.flatMap((sec) => [sec.title, sec.content, ""]),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${manual.id}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ManualsPage() {
   const [selectedManual, setSelectedManual] = useState<ManualItem | null>(null);
 
   const manuals: ManualItem[] = [
+    {
+      id: "sistema",
+      title: "Manual del Sistema — Pilotos Dashboard",
+      description: "Guía completa de la estructura, organización y operación de la plataforma: roles de usuario, módulos, flujos de trabajo y funcionalidades disponibles para cada perfil.",
+      icon: <Layers className="w-6 h-6" />,
+      color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20",
+      updatedAt: "2026-09-10",
+      version: "v1.0 Interno",
+      sections: [
+        {
+          title: "1. Qué es Pilotos Dashboard",
+          content: "Plataforma digital de Modena Air Service para la gestión integral de la tripulación: legajos digitales, vencimientos normativos ANAC, evaluación de riesgos pre-vuelo (FRAT), horas de vuelo (logbook), gestión de flota y biblioteca técnica centralizada. Funciona como aplicación web y también como app instalable (PWA) en computadora o celular."
+        },
+        {
+          title: "2. Roles de Usuario y Permisos",
+          content: "Existen tres roles: ADMIN (acceso total: gestiona pilotos, usuarios, flota, auditoría y configuración), BASE_SUPERVISOR (ve y edita únicamente los pilotos de la base que tiene asignada) y PILOT (accede solo a su propio legajo, FRAT, logbook y biblioteca técnica). Los permisos se validan en el servidor en cada operación, no solo en la pantalla."
+        },
+        {
+          title: "3. Inicio de Sesión y Cuentas",
+          content: "El acceso es con email o DNI y contraseña. Las cuentas nuevas se crean por invitación desde el Panel de Administración (solo ADMIN), que genera un enlace de alta para el piloto o supervisor. En el primer ingreso, el sistema exige cambiar la contraseña provisoria."
+        },
+        {
+          title: "4. Panel de Control de Tripulación (Dashboard)",
+          content: "Pantalla principal para ADMIN y BASE_SUPERVISOR. Muestra el resumen general de la flota, vista de tarjetas o calendario de vencimientos, buscador por nombre/DNI/base/licencia, filtros por base y por aeronave, matriz de cobertura por base, gráfico de tendencia de vencimientos y un banner de alerta cuando hay certificados en estado crítico. Incluye exportación a Excel y, para ADMIN, importación masiva por CSV."
+        },
+        {
+          title: "5. Legajo Digital del Piloto",
+          content: "Ficha individual de cada piloto con sus 13 campos de habilitación (licencia, CMA, control bienal, inspección de reconocimiento, simulador, control de idoneidad y de ruta, CRM/FFHH, mercancías peligrosas, interferencia ilícita, MOE, SMS, curso de aeronave) y su historial. Cada certificado admite la carga del documento respaldatorio (PDF/imagen), que se guarda en almacenamiento en la nube (Vercel Blob), y puede ser verificado con firma digital por un ADMIN o supervisor."
+        },
+        {
+          title: "6. Alertas ANAC y Vencimientos",
+          content: "Sección dedicada a los certificados próximos a vencer, con semáforo de estado (crítico: menos de 30 días; aviso: 30 a 60 días; ok; no aplica). Un proceso automático diario revisa toda la flota y envía notificaciones por email y, a quienes lo activaron, notificación push directa al dispositivo cuando hay alertas críticas o próximas."
+        },
+        {
+          title: "7. FRAT — Evaluación de Riesgos Pre-Vuelo",
+          content: "Formulario guiado (tipo entrenamiento u operación diaria) que calcula un puntaje de riesgo inicial y final según las respuestas del piloto al mando, permite registrar mitigaciones, firma digital del PIC y genera un reporte en PDF. Queda almacenado con fecha, base, aeronave y tripulación."
+        },
+        {
+          title: "8. Logbook y Horas de Vuelo",
+          content: "Registro de vuelos realizados por piloto: fecha, aeronave, matrícula, ruta, horas diurnas, nocturnas e IFR, y aterrizajes. Los datos se guardan de forma permanente en la base de datos (no en el navegador) y cada registro puede exportarse a PDF individualmente."
+        },
+        {
+          title: "9. Gestión de Flota — Bases y Aeronaves",
+          content: "Sección exclusiva de ADMIN para administrar las bases operativas (nombre, cliente/contrato, ubicación, descripción) y las aeronaves asignadas a cada una (modelo y matrícula), sin necesidad de un nuevo despliegue técnico. Estos datos alimentan automáticamente la matriz de cobertura del dashboard y los selectores del formulario FRAT."
+        },
+        {
+          title: "10. Biblioteca Técnica (Manuales)",
+          content: "Repositorio centralizado de manuales y procedimientos operativos normativos (este manual incluido), organizados en tarjetas con lector integrado por secciones y descarga del contenido completo."
+        },
+        {
+          title: "11. Auditoría (solo ADMIN)",
+          content: "Historial de cambios sensibles del sistema: quién editó qué dato de un piloto, quién verificó un documento y quién generó una invitación, con fecha y detalle del cambio (diff). Permite trazabilidad completa ante cualquier consulta operativa o normativa."
+        },
+        {
+          title: "12. Administración de Usuarios e Invitaciones",
+          content: "Panel donde ADMIN da de alta nuevas cuentas (piloto o supervisor de base), asigna la base correspondiente a cada supervisor y gestiona el estado de las cuentas existentes."
+        },
+        {
+          title: "13. Notificaciones",
+          content: "El sistema avisa por email (a través de Resend) y por notificación push del navegador/celular (previa activación desde el botón 'Activar Notificaciones' en el menú lateral) cuando un certificado entra en estado de alerta. El aviso por WhatsApp está previsto pero aún no integrado con un proveedor externo."
+        },
+        {
+          title: "14. Aplicación Instalable (PWA)",
+          content: "Pilotos Dashboard puede instalarse como aplicación en la pantalla de inicio del celular o como programa de escritorio, desde el navegador ('Instalar aplicación' / 'Agregar a pantalla de inicio'). Una vez instalada, permite recibir notificaciones push igual que una app nativa."
+        },
+        {
+          title: "15. Modo Claro / Oscuro",
+          content: "El ícono de sol/luna en el menú lateral cambia el tema visual de toda la aplicación y guarda la preferencia del usuario para las próximas veces que ingrese."
+        },
+        {
+          title: "16. Seguridad de los Datos",
+          content: "Las contraseñas se almacenan encriptadas, cada acción del servidor valida el rol y la base asignada del usuario antes de responder, los documentos se guardan en almacenamiento en la nube (no en el servidor de la aplicación) y la información opera sobre una base de datos de producción con respaldo continuo."
+        }
+      ]
+    },
     {
       id: "hems-nvg",
       title: "Manual HEMS / NVG",
@@ -184,11 +277,11 @@ export default function ManualsPage() {
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-6 flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-400 uppercase">Documentación Normativa ANAC</span>
                 <button
-                  onClick={() => alert(`Iniciando descarga de ${selectedManual.title} (${selectedManual.version}.pdf)...`)}
+                  onClick={() => downloadManual(selectedManual)}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase shadow-md transition-all"
                 >
                   <Download className="w-4 h-4" />
-                  DESCARGAR PDF COMPLETO
+                  DESCARGAR MANUAL COMPLETO
                 </button>
               </div>
             </motion.div>

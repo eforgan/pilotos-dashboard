@@ -11,9 +11,9 @@ import {
 } from "@/lib/utils";
 import PilotCard from "@/components/PilotCard";
 import PilotMetrics from "@/components/PilotMetrics";
-import { 
-  Search, Filter, ArrowUpDown, LogOut, 
-  ShieldCheck, ShieldAlert, LayoutGrid, Calendar as CalendarIcon, Plane
+import {
+  Search, Filter, ArrowUpDown, LogOut,
+  ShieldCheck, ShieldAlert, LayoutGrid, Calendar as CalendarIcon, Plane, BookOpen
 } from "lucide-react";
 import { Pilot } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -139,6 +139,28 @@ export default function DashboardPage() {
           <p className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider">Total Pilotos: <span className="text-blue-700 dark:text-blue-400 font-black text-lg">{pilots.length}</span></p>
         </div>
       </motion.div>
+
+      {/* System Intro Card */}
+      <div className="rounded-3xl p-6 bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-base font-black uppercase tracking-tight text-slate-950 dark:text-white mb-1">Sobre el Sistema</h3>
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed max-w-2xl">
+              Pilotos Dashboard es la plataforma digital de Modena Air Service para la gestión integral de la tripulación: legajos digitales, vencimientos normativos ANAC, evaluación de riesgos (FRAT), horas de vuelo, flota y documentación técnica centralizada. Consultá el manual completo del sistema para conocer todos los módulos disponibles.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/manuals"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase shadow-md transition-all whitespace-nowrap shrink-0"
+        >
+          <BookOpen className="w-4 h-4" />
+          Ver Manual del Sistema
+        </Link>
+      </div>
 
       {/* Analytics Summary */}
       {summary && <PilotMetrics summary={summary} />}
