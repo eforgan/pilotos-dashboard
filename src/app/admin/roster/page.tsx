@@ -138,8 +138,6 @@ export default function RosterPage() {
     }));
   }, [rows]);
 
-  const maxAircraftCount = Math.max(1, ...aircraftCounts.map((a) => a.count));
-
   const totalPilotos = rows.length;
   const sinEmail = rows.filter((r) => !r.email).length;
   const basesDistintas = baseOptions.length;
@@ -314,12 +312,12 @@ export default function RosterPage() {
                 <div className="flex-1 h-5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.max((a.count / maxAircraftCount) * 100, a.count > 0 ? 4 : 0)}%` }}
+                    animate={{ width: `${Math.max((a.count / Math.max(totalPilotos, 1)) * 100, a.count > 0 ? 4 : 0)}%` }}
                     transition={{ duration: 0.5 }}
                     className={`h-full rounded-full bg-gradient-to-r ${isActive ? "from-blue-600 to-sky-400" : "from-blue-500/60 to-sky-400/60 group-hover:from-blue-600 group-hover:to-sky-400"}`}
                   />
                 </div>
-                <span className="w-6 text-xs font-black text-slate-500 dark:text-slate-400 text-right shrink-0">{a.count}</span>
+                <span className="w-16 text-xs font-black text-slate-500 dark:text-slate-400 text-right shrink-0">{a.count} / {totalPilotos}</span>
               </button>
             );
           })}
