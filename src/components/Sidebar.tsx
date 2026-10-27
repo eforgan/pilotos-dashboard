@@ -16,10 +16,10 @@ import {
   FileCheck,
   Clock,
   User,
+  Users,
   MapPin,
   History,
-  ClipboardList,
-  ExternalLink
+  ClipboardList
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -56,14 +56,7 @@ const Sidebar = () => {
         ...(isAdmin ? [{ name: "Asignación Bases/Aeronaves", href: "/admin/assignments", icon: ClipboardList }] : []),
         ...(isAdmin ? [{ name: "Auditoría", href: "/admin/audit", icon: History }] : []),
         { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
-        ...(isAdmin
-          ? [{
-              name: "Roster de Pilotos",
-              href: "https://claude.ai/artifact/5UaVfWJX2c4CLijM2xobXv",
-              icon: ExternalLink,
-              external: true,
-            }]
-          : []),
+        ...(isAdmin ? [{ name: "Roster de Pilotos", href: "/admin/roster", icon: Users }] : []),
       ]
     : [
         { name: "Mi Legajo", href: pilotId ? `/pilot/${pilotId}` : "/", icon: User },
@@ -135,7 +128,6 @@ const Sidebar = () => {
                 <Link
                   key={item.name}
                   href={item.href}
-                  {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className={`flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all group ${
                     isActive
                       ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-lg shadow-blue-500/30 scale-[1.02]"
@@ -216,7 +208,6 @@ const Sidebar = () => {
                     <Link
                       key={item.name}
                       href={item.href}
-                      {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-lg font-medium ${
                         pathname === item.href
                           ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
