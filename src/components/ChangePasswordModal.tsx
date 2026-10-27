@@ -26,14 +26,8 @@ export default function ChangePasswordModal() {
     const cleanPass = newPassword.trim();
     const cleanConfirm = confirmPassword.trim();
 
-    if (cleanPass.length === 0) {
-      setError("Por favor ingrese su nueva contraseña.");
-      setLoading(false);
-      return;
-    }
-
-    if (cleanPass.length > 8) {
-      setError("La contraseña no debe superar los 8 caracteres.");
+    if (cleanPass.length !== 6) {
+      setError("La contraseña debe tener exactamente 6 caracteres.");
       setLoading(false);
       return;
     }
@@ -101,7 +95,7 @@ export default function ChangePasswordModal() {
           <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-2xl mb-6 text-xs text-blue-300 font-semibold flex items-start gap-2.5">
             <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <span>
-              La nueva clave debe ser personal, secreta y de <strong>hasta 8 caracteres</strong> como máximo.
+              La nueva clave debe ser personal, secreta y de <strong>exactamente 6 caracteres</strong>.
             </span>
           </div>
 
@@ -124,16 +118,16 @@ export default function ChangePasswordModal() {
                 <label className="flex items-center justify-between text-xs font-black text-slate-300 uppercase tracking-wider">
                   <span>Nueva Contraseña Secreta *</span>
                   <span className="text-[10px] text-blue-400 font-mono">
-                    {newPassword.length}/8 caracteres
+                    {newPassword.length}/6 caracteres
                   </span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="password"
-                    maxLength={8}
+                    maxLength={6}
                     className="input-field pl-12 h-14 w-full !bg-slate-950 !border-white/10 focus:!border-blue-500 !text-white rounded-xl text-base font-mono"
-                    placeholder="Máx 8 caracteres"
+                    placeholder="6 caracteres"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -145,14 +139,14 @@ export default function ChangePasswordModal() {
                 <label className="flex items-center justify-between text-xs font-black text-slate-300 uppercase tracking-wider">
                   <span>Confirmar Contraseña *</span>
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {confirmPassword.length}/8
+                    {confirmPassword.length}/6
                   </span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="password"
-                    maxLength={8}
+                    maxLength={6}
                     className="input-field pl-12 h-14 w-full !bg-slate-950 !border-white/10 focus:!border-blue-500 !text-white rounded-xl text-base font-mono"
                     placeholder="Repita la clave"
                     value={confirmPassword}

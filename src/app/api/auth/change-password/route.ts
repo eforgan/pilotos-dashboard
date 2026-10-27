@@ -25,16 +25,9 @@ export async function POST(request: Request) {
 
     const cleanPassword = newPassword.trim();
 
-    if (cleanPassword.length < 4) {
+    if (cleanPassword.length !== 6) {
       return NextResponse.json(
-        { error: "La contraseña debe tener al menos 4 caracteres." },
-        { status: 400 }
-      );
-    }
-
-    if (cleanPassword.length > 8) {
-      return NextResponse.json(
-        { error: "La clave debe tener hasta 8 caracteres como máximo." },
+        { error: "La contraseña debe tener exactamente 6 caracteres." },
         { status: 400 }
       );
     }

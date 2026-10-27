@@ -42,7 +42,7 @@ const Sidebar = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || pathname === "/access") return null;
 
   const navItems = isAdmin || isSupervisor
     ? [
