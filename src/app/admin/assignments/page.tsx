@@ -16,6 +16,25 @@ const AIRCRAFT_COLUMNS = ["AW109", "BO105", "RH44", "BN2B"] as const;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+function normalizeKey(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+// "Base Cabo Vírgenes" es un alias historico de "Base BRM" (misma base
+// operativa, dos nombres distintos usados en datos viejos): se unifican en
+// una sola columna en vez de mostrar un duplicado.
+const BASE_ALIASES: Record<string, string> = {
+  [normalizeKey("Base Cabo Vírgenes")]: "Base BRM",
+};
+
+function canonicalBaseName(name: string): string {
+  return BASE_ALIASES[normalizeKey(name)] || name;
+}
+
 export default function PilotAssignmentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -55,11 +74,11 @@ export default function PilotAssignmentsPage() {
   // más cualquier base que ya tengan asignada los pilotos pero que no exista
   // como registro formal todavía (para no perder datos existentes).
   const baseNames = useMemo(() => {
-    const names = new Set<string>(bases.map((b) => b.name));
+    const names = new Set<string>(bases.map((b) => canonicalBaseName(b.name)));
     for (const p of pilots) {
-      if (p.BASE && p.BASE.trim()) names.add(p.BASE.trim());
+      if (p.BASE && p.BASE.trim()) names.add(canonicalBaseName(p.BASE.trim()));
       for (const b of p.BASES_OPERATIVAS || []) {
-        if (b && b.trim()) names.add(b.trim());
+        if (b && b.trim()) names.add(canonicalBaseName(b.trim()));
       }
     }
     return Array.from(names).sort((a, b) => a.localeCompare(b, "es"));
@@ -99,8 +118,12 @@ export default function PilotAssignmentsPage() {
 
   function toggleBase(pilot: Pilot, baseName: string) {
     const current = pilot.BASES_OPERATIVAS || [];
-    const isAssigned = current.includes(baseName);
-    const next = isAssigned ? current.filter((b) => b !== baseName) : [...current, baseName];
+    const isAssigned = current.some((b) => canonicalBaseName(b) === baseName);
+    // Al desmarcar, se quita cualquier variante (incluidos alias viejos como
+    // "Base Cabo Vírgenes") que apunte a esta misma base canonica.
+    const next = isAssigned
+      ? current.filter((b) => canonicalBaseName(b) !== baseName)
+      : [...current, baseName];
 
     setPilots((prev) =>
       prev.map((p) => (p.id === pilot.id ? { ...p, BASES_OPERATIVAS: next } : p))
@@ -216,7 +239,9 @@ export default function PilotAssignmentsPage() {
                     )}
                   </td>
                   {baseNames.map((name) => {
-                    const checked = (pilot.BASES_OPERATIVAS || []).includes(name);
+                    const checked = (pilot.BASES_OPERATIVAS || []).some(
+                      (b) => canonicalBaseName(b) === name
+                    );
                     const key = `${pilot.id}-base-${name}`;
                     const cs = cellState[key];
                     return (
