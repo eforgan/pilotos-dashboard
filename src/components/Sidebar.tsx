@@ -17,7 +17,8 @@ import {
   Clock,
   User,
   MapPin,
-  History
+  History,
+  ClipboardList
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -51,6 +52,7 @@ const Sidebar = () => {
         { name: "FRAT", href: "/frat", icon: FileCheck },
         { name: "Logbook & Horas", href: "/logbook", icon: Clock },
         ...(isAdmin ? [{ name: "Gestión de Flota", href: "/admin/fleet", icon: MapPin }] : []),
+        ...(isAdmin ? [{ name: "Asignación Bases/Aeronaves", href: "/admin/assignments", icon: ClipboardList }] : []),
         ...(isAdmin ? [{ name: "Auditoría", href: "/admin/audit", icon: History }] : []),
         { name: "Manuales Técnicos", href: "/manuals", icon: Plane },
       ]

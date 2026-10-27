@@ -28,6 +28,7 @@ export interface Pilot {
   VACACIONES: string;
   INSP_IR: string;
   BASE: string;
+  BASES_OPERATIVAS?: string[];
   HUET: string;
   RO: string;
   imageUrl?: string | null;

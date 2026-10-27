@@ -70,7 +70,12 @@ model Pilot {
   BASE            String?
   HUET            String?
   RO              String?
-  
+
+  // Bases operativas a las que el piloto esta afectado (puede ser mas de una).
+  // BASE arriba sigue siendo la base "principal" usada en el resto de la app;
+  // este campo es la lista completa para la matriz de asignaciones.
+  BASES_OPERATIVAS String[] @default([])
+
   // Auth & Profile Data
   imageUrl        String?
   inviteToken     String?  @unique
