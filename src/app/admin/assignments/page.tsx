@@ -247,14 +247,16 @@ export default function PilotAssignmentsPage() {
                     return (
                       <td
                         key={name}
-                        className="px-2 py-2 text-center border-l border-slate-100 dark:border-slate-800"
+                        className="px-2 py-2 border-l border-slate-100 dark:border-slate-800"
                       >
-                        <AssignmentCheckbox
-                          checked={checked}
-                          state={cs}
-                          onToggle={() => toggleBase(pilot, name)}
-                          label={`${pilot.PILOTO} - ${name}`}
-                        />
+                        <div className="flex items-center justify-center">
+                          <AssignmentCheckbox
+                            checked={checked}
+                            state={cs}
+                            onToggle={() => toggleBase(pilot, name)}
+                            label={`${pilot.PILOTO} - ${name}`}
+                          />
+                        </div>
                       </td>
                     );
                   })}
@@ -266,15 +268,17 @@ export default function PilotAssignmentsPage() {
                     return (
                       <td
                         key={model}
-                        className="px-2 py-2 text-center border-l border-slate-100 dark:border-slate-800"
+                        className="px-2 py-2 border-l border-slate-100 dark:border-slate-800"
                       >
-                        <AssignmentCheckbox
-                          checked={checked}
-                          state={cs}
-                          onToggle={() => toggleAircraft(pilot, model)}
-                          label={`${pilot.PILOTO} - ${model}`}
-                          accent="emerald"
-                        />
+                        <div className="flex items-center justify-center">
+                          <AssignmentCheckbox
+                            checked={checked}
+                            state={cs}
+                            onToggle={() => toggleAircraft(pilot, model)}
+                            label={`${pilot.PILOTO} - ${model}`}
+                            accent="emerald"
+                          />
+                        </div>
                       </td>
                     );
                   })}
